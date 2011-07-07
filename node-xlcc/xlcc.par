@@ -1,0 +1,866 @@
+/~eXtended Lightweight Coordination Calculus (XLCC) Interpreter on node.js ~/
+
+[*
+// FOR NODEJS ONLY >>>>>>>>>>>
+	
+	var sys = require("sys");
+	var events = require("events");
+	var emitter = new events.EventEmitter;
+	var xmpp = require("../lib/node-xmpp/lib/node-xmpp");
+	var xmpp_resource = undefined;
+	
+
+// FOR NODEJS ONLY <<<<<<<<<<<
+
+	var constraints = {};
+	emitter.removeAllListeners("okcs loaded");
+	emitter.removeAllListeners("gotMessageFromXMPPServer");
+	emitter.on("gotMessageFromXMPPServer", onMessageArrival);
+	var v_names = new Array();
+	var v_values = new Array();
+	var backtrack = undefined;
+	var okcs = new Array();
+//	var clauses = new Array();
+	var role_heads = new Array();
+	var role_bodies = new Array();
+	var init = undefined;
+	var currentMessageNode = undefined;
+	var currentRoleNode = undefined;
+	var currentConstraintsNode = undefined;
+	var nextThenNode = undefined;
+	var nextOrNode = undefined;
+	var peerID = undefined;
+	
+	var NODE_OP			= 1;
+	var NODE_VAR 		= 2;
+	var NODE_CONST		= 3;
+	
+	var OP_ENTRY		= -2;
+	var OP_NONE 		= -1;
+	var OP_SEND 		= 0;
+	var OP_RECEIVE		= 1;
+	var OP_THEN			= 2;
+	var OP_OR			= 3;
+	var OP_LIST 		= 4;
+	var OP_ROLE			= 5;
+	var OP_ROLE_DEF		= 6;
+	var OP_SEND 		= 7;
+	var OP_RECEIVE		= 8;
+	var OP_ROLE_TYPE    = 9;
+	var OP_SET_VAR      = 10;
+	var OP_CONSTRAINT	= 11;
+	var OP_NEGATE		= 12;
+	var OP_LOGAND		= 13;
+	var OP_LOGOR		= 14;
+	var OP_NO_MSG		= 15;
+	var OP_TERMS		= 16;
+	var OP_FACTOR		= 17;
+	var OP_MESSAGE		= 18;
+	var OP_HEADBODY		= 19;
+	var OP_ROLE_CHANGE  = 20;
+	var OP_PAR			= 21;
+	var OP_KNOWS		= 22;
+	var OP_PLAYS		= 23;
+	var OP_CLAUSE		= 24;
+	
+	function Node(){
+		var type;
+		var value;
+		var children;
+	} 
+		
+	function createNode(type, value, childs){
+		var n = new Node();
+		n.type = type;
+		n.value = value;
+		n.children = new Array();
+		
+		for(var i = 2; i < arguments.length; i++){
+			n.children.push(arguments[i]);
+		}
+		return n;
+	}
+	
+	function setValue(vname, vvalue){
+		var found = false;
+		for(var i = 0; i < v_names.length; i++){
+			if(v_names[i].toString() == vname.toString()){
+				v_values[i] = (arguments.length == 1)? undefined : vvalue; //The type is now checked here.
+				found = true;
+				break;
+			}
+			
+		}
+		if(!found){
+			v_names.push(vname);
+			v_values.push((arguments.length == 1)? undefined : vvalue);
+		}
+	}
+	
+	function getValue(vname){
+		for(var i = 0; i < v_names.length; i++){
+			if(v_names[i].toString() == vname.toString()){
+				return v_values[i];
+			}
+		}
+		return undefined;
+	}
+	
+	function readValue(factors){
+		if(factors.length != 0){
+			for(var i = 0; i < factors.length; i++){
+				if(factors[i].name && factors[i].name.charAt(0) === factors[i].name.charAt(0).toUpperCase()){
+					if(!factors[i].value || factors[i].value == undefined || factors[i].value == "undefined" ){
+						process.stdout.write("Please assign a new value to variable '" + factors[i].name + "':");
+						process.stdin.resume();
+						process.stdin.setEncoding('utf8');
+						
+						process.stdin.on("data", function (fvalue) {
+							factors[i].value = fvalue;
+							setValue(factors[i].name, fvalue);
+						});
+						process.stdin.on('end', function () {
+						  process.stdout.write('*end*');
+						});
+					}
+				}
+				if(factors[i].params && factors[i].params.length != 0){
+					readValue(factors[i].params);
+				}
+			}
+		}
+	}
+	
+	function serialiseValue(factors){
+		var content = "";
+		for(var i = 0; i < factors.length; i++){
+//			sys.debug(factors[i].name.charAt(0).toString() + " : " + factors[i].name.charAt(0).toString().toUpperCase());
+			if(factors[i].name && factors[i].name.charAt(0).toString() == factors[i].name.charAt(0).toString().toUpperCase()){
+				if(factors[i].value == undefined){
+//					sys.debug("here again");
+				}
+				else{
+//					sys.debug(JSON.stringify(factors[i]));
+//					sys.debug("detect factors " + factors[i].name + " " + factors[i].value);
+					content += factors[i].name + " : " + factors[i].value + "\r\n";
+					
+				}
+			}
+			if(factors[i].params && factors[i].params.length != 0){
+				content += serialiseValue(factors[i].params);
+			}
+		}
+		return content;
+	}
+	
+	function displayValue(factors){
+		sys.debug(serialiseValue(factors));
+	}
+	
+	var peerHelper = { 
+		"setValue" : setValue, 
+		"getValue" : getValue,
+		"readValue" : readValue,
+		"displayValue" : displayValue
+	}
+	
+	function resetLCCEnvironment(){
+		v_names = new Array();
+		v_values = new Array();
+		backtrack = undefined;
+		okcs = new Array();
+		clauses = new Array();
+		role_heads = new Array();
+		role_bodies = new Array();
+		var init = undefined;
+		var currentMessageNode = undefined;
+		var currentRoleNode = undefined;
+		var currentConstraintsNode = undefined;
+		var nextThenNode = undefined;
+		var nextOrNode = undefined;
+	}
+	
+	function isIdenticalRole(tnode1, tnode2){ //TODO need testing
+		if(typeof(tnode1) == "string" && typeof(tnode2) == "string"){
+			return true;	
+		}
+		else if(typeof(tnode1) == "string" && typeof(tnode2) != "string" || typeof(tnode1) != "string" && typeof(tnode2) == "string"){
+			return false;
+		}
+		else{
+			if((tnode1.type == 1 && tnode1.type.toString() == tnode2.type.toString() && tnode1.value.toString() == tnode2.value.toString())
+			|| (tnode1.type != 1 && tnode1.type.toString() == tnode2.type.toString())){
+				if(tnode1.children.length == 0 && tnode2.children.length == 0){
+					return true;
+				}
+				else if(tnode1.children.length == tnode2.children.length){
+					for(var i = 0; i < tnode1.children.length; i++){
+						if(isIdenticalRole(tnode1.children[i], tnode2.children[i])){
+							continue;
+						}
+						else{
+//							sys.debug("detect false here");
+							return false;
+						}
+					}
+					return true;
+				}
+				else{
+//					sys.debug("different children lengths");
+					return false;
+				}
+			}
+			else{
+//				sys.debug("different types or values");
+				return false;
+			}
+		}
+	}
+	
+	function updateVariableValueInNode(src_role_head, dest_role_head){
+		if(typeof(src_role_head) == "string" && typeof(dest_role_head) == "string"){
+			if(getValue(src_role_head)){
+				setValue(dest_role_head, getValue(src_role_head));
+			}
+			else{
+				setValue(dest_role_head, src_role_head);
+			}
+		}
+		else{
+			for(var i = 0; i < src_role_head.children.length; i++){
+				updateVariableValueInNode(src_role_head.children[i], dest_role_head.children[i]);
+			}
+		}
+	}
+	
+	function getRoleBodyByRoleHead(role_head){
+		var role_body = null;
+		for(var i = 0; i < role_heads.length; i++){
+			if(isIdenticalRole(role_head, role_heads[i])){
+				role_body = role_bodies[i];
+				break;
+			}
+		}
+		if(role_body == null){
+			throw roleDefinitionNotFoundException(JSON.stringify(role_head));
+		}
+		else{
+//			sys.debug("find the role definition!");
+		}
+		return role_body;
+	}
+	
+	function getRoleBodyByRoleHeadAfterRoleChanging(role_head){
+		var role_body = null;
+//		sys.debug("number of pairs of heads and bodies: " + role_heads.length);
+		for(var i = 0; i < role_heads.length; i++){
+//			sys.debug(JSON.stringify(role_head) + "================" + JSON.stringify(role_heads[i]));
+			if(isIdenticalRole(role_head, role_heads[i])){
+//				sys.debug("find identical roles");
+				updateVariableValueInNode(role_head, role_heads[i]);
+				role_body = role_bodies[i];
+				break;
+			}
+		}
+		if(role_body == null){
+			throw roleDefinitionNotFoundException(JSON.stringify(role_head));
+		}
+		else{
+//			sys.debug("find the role definition!");
+		}
+		return role_body;
+	}
+	
+	function getRoleNameByRoleHeadNode(role_head){
+		return role_head.children[0].children[0].toString();
+	}
+	
+	function retrieveOKCs(okcs, headElem, count, length, node){
+		var okcElem = document.createElement("script");
+		headElem.appendChild(okcElem);
+		okcElem.type = "text/javascript";
+		okcElem.src =  okcs[count];
+		okcElem.onload = function () {
+			sys.debug("OKC [" + okcs[count] + "] loaded!");
+			count++;
+			if(count == length){
+				sys.debug("OKCs loading finished!");
+//				sys.debug(JSON.stringify(node));
+				emitter.emit("okcs loaded", node);
+			}
+			else{
+				retrieveOKCs(okcs, headElem, count, length, node);
+			}
+		};
+	}
+	
+	function initialize(clauses, builtIns){
+		init = new Array();
+		okcs = new Array();
+		execute(builtIns);
+		peerID = document.getElementById("jid").value;		//based on user's inputs
+//		sys.debug("Start interpreting the codes");
+		emitter.on("okcs loaded", execute);
+//		sys.debug(init[0].jid.toString());
+		for(var i = 0; i < init.length; i++){
+			if(init[i].iid){
+				xmpp_resource = init[i].iid.toString();
+				sys.debug("Interaction ID is " + xmpp_resource);
+			}
+			if(init[i].okcs){
+				for(var j = 0; j < init[i].okcs.length; j++){
+					okcs.push(init[i].okcs[j]);
+	//				sys.debug(init[i].okcs[j]);
+				}
+			}
+		}
+		var count = 0;
+		var length = okcs.length;
+		var headElem = document.getElementsByTagName("head")[0];
+		retrieveOKCs(okcs, headElem, count, length, clauses);
+	}
+	
+	function initializeByHeader(jsonStr, clauses, builtIns){
+		peerID = document.getElementById("jid").value;		//based on user's inputs
+//		sys.debug("Start interpreting the codes");
+		emitter.on("okcs loaded", execute);
+//		sys.debug("node " + JSON.stringify(clauses, null, "\t"));
+		init = eval('(' + jsonStr + ')');
+//		sys.debug(init[0].jid.toString());
+		for(var i = 0; i < init.length; i++){
+			if(init[i].iid){
+				xmpp_resource = init[i].iid.toString();
+				sys.debug("Interaction ID is " + xmpp_resource);
+			}
+			for(var j = 0; j < init[i].okcs.length; j++){
+				okcs.push(init[i].okcs[j]);
+//				sys.debug(init[i].okcs[j]);
+			}
+		}
+		if(arguments.length == 3){
+			execute(builtIns);
+		}
+		var count = 0;
+		var length = okcs.length;
+		var headElem = document.getElementsByTagName("head")[0];
+		retrieveOKCs(okcs, headElem, count, length, clauses);
+	}
+	
+//	function sendtext(){
+//		var fullJID = 
+//		client.send(new xmpp.Element("message", {to : "bob@okbook.inf.ed.ac.uk", type : "chat"})..c("body").t("send"));
+//		setTimeout('sendtext();', 3000);
+//	}
+	
+	function sendMSG(message, recepientJID){
+		var success;
+		sys.debug("Sending message " + message + " to " + recepientJID);
+		var fullJID = recepientJID + "/" + xmpp_resource;
+		client.send(new xmpp.Element("message", {to : fullJID, type : "chat"}).c("body").t(message));
+//		sendtext();
+		success = true;
+		return success;
+	}
+	
+	function updateVariableValueInJSON(src_msg, dest_msg){
+		dest_msg.value = src_msg.value;
+		setValue(dest_msg.name, dest_msg.value);
+		if(dest_msg.params.length != 0 && dest_msg.params.length != 0){
+			for(var i = 0; i < src_msg.params.length; i++){
+				updateVariableValueInJSON(src_msg.params[i], dest_msg.params[i]);
+			}
+		}
+	}
+	
+	function onMessageArrival(msg) {
+		sys.debug("A new message came : " + msg.body); 
+		var senderJID = msg.from.toString();
+		//TODO the sender id and the resource need to be checked here.
+		var msgBody = JSON.parse(msg.body);
+//		sys.debug("body : " + JSON.stringify(msgBody));
+//update variables here
+		//when receive message
+		if(currentConstraintsNode != undefined){
+			emitter.emit("msgReceived", msgBody, execute(currentMessageNode), execute(currentRoleNode), currentConstraintsNode);
+			emitter.removeAllListeners("msgReceived");
+		}
+		else{
+			emitter.emit("msgReceived", msgBody, execute(currentMessageNode), execute(currentRoleNode));
+			emitter.removeAllListeners("msgReceived");
+		}
+	}
+	
+	function executeNextThenOrOrBranch(solved){
+		if(solved){
+			if(emitter.listeners("nextThenDEF") != undefined && emitter.listeners("nextThenDEF").length != 0){
+	//			sys.debug("nextThenDEF is not empty! --- " + emitter.listeners("nextThenDEF").length);
+				emitter.emit("nextThenDEF", nextThenNode, "nextThenDEF");
+			}
+			else{
+				sys.debug("Interaction finished successfully!");
+			}
+		}
+		else{
+			if(emitter.listeners("nextOrDEF") != undefined && emitter.listeners("nextOrDEF").length != 0){
+					v_names = backtrack.v_names;
+					v_values = backtrack.v_values;
+//					sys.debug("track back after OR");
+					emitter.emit("nextOrDEF", nextOrNode, "nextOrDEF");
+			}
+			else{
+				throw constraitsSolvingFailedException();
+			}
+		}
+	}
+	
+	function receiveMSG(msgBody, msgJSONStr, roleNode, currentConstraintsNode){
+		msgJSON = eval("(" + msgJSONStr + ")");
+		updateVariableValueInJSON(msgBody, msgJSON);
+//		sys.debug("after update: " + JSON.stringify(msgBody) + "============" + JSON.stringify(msgJSON));
+		if(arguments[3]){
+			var solved = execute(currentConstraintsNode);
+			currentConstraintsNode = undefined;
+			executeNextThenOrOrBranch(solved);
+		}
+		else{
+			executeNextThenOrOrBranch(true);
+		}
+	}
+	
+	
+	
+	function execute(node, removeListeners){
+		if(arguments.length == 2){
+			if(removeListeners == "nextThenDEF"){
+				emitter.removeAllListeners("nextThenDEF");
+//				sys.debug("after remove we got : " + emitter.listeners("nextThenDEF"));	
+			}
+			else if(removeListeners == "nextOrDEF"){
+				emitter.removeAllListeners("nextOrDEF");
+//				sys.debug("after remove we got : " + emitter.listeners("nextOrDEF"));	
+			}
+		}
+//		sys.debug("executing " + JSON.stringify(node));
+		var ret = 0;
+		if(!node)
+			return 0;
+		switch(node.type){
+			case NODE_OP: 
+				switch(node.value){
+					case OP_ENTRY:
+						if(node.children[0]){
+//							sys.debug(JSON.stringify(clauses));
+							execute(getRoleBodyByRoleHeadAfterRoleChanging(node.children[0]));
+						}
+						break;
+					case OP_NONE:
+						if(node.children[0]){
+							execute(node.children[0]);
+						}
+						break;
+					case OP_CLAUSE:
+						if(node.children[0]){
+//							clauses.push(node.children[0]);
+							execute(node.children[0]);
+						}
+						if(node.children[1]){
+							execute(node.children[1]);
+						}
+						break;
+					case OP_HEADBODY:
+						if(node.children[0]){
+							role_heads.push(node.children[0]);
+//							execute(node.children[0]);
+						}
+						if(node.children[1]){
+							role_bodies.push(node.children[1]);
+//							execute(node.children[1]);
+						}
+						break;
+					case OP_ROLE_CHANGE:
+						if(node.children[1]){
+							if(execute(node.children[1]) && node.children[1]){
+								sys.debug("Role change now!");
+								execute(getRoleBodyByRoleHeadAfterRoleChanging(node.children[0]));
+							}
+							else{
+								throw constraitsSolvingFailedException();
+							}
+						}
+						else if(node.children[0]){
+							sys.debug("Role change now!");
+							execute(getRoleBodyByRoleHeadAfterRoleChanging(node.children[0]));						
+						}
+						break;
+					case OP_ROLE:
+						var roleIdNode = execute(node.children[1]);
+//						sys.debug("role parse: " + JSON.stringify(execute(node.children[0])));
+						var temp = eval("[(" + execute(node.children[0]) + ")]");
+						readValue(temp);
+						var roleType = temp[0];
+						var roleName = roleType.name;
+						for(var i = 0; i < init.length; i++){
+//							sys.debug(roleName.toString().toLowerCase() + " : " + init[i].role.toString().toLowerCase());
+							if(roleName.toString().toLowerCase() == init[i].role.toString().toLowerCase()){
+								setValue(roleIdNode, init[i].jid.toString());
+//								sys.debug(roleIdNode + " " + init[i].jid.toString());
+								var jid = init[i].jid.toString();
+								ret = jid; 
+								break;
+							}
+						}
+						break;
+					case OP_KNOWS:
+						if(node.children[0])
+							okcs.push(node.children[0].toString());
+						break;
+					case OP_PLAYS:
+						if(node.children[0] && node.children[1]){
+							var info = {};
+							info["jid"] = node.children[0].toString();
+							info["role"] = node.children[1].toString();
+							init.push(info);						
+						}
+						break;
+					case OP_ROLE_TYPE:
+						var ret = execute(node.children[0]);
+						break;
+					case OP_TERMS:
+						if(node.children[1]){
+							ret = execute(node.children[0]) + ", " + execute(node.children[1]);
+						}
+						else{
+							ret = execute(node.children[0]);
+						}
+						break;
+					case OP_FACTOR:
+						if(node.children[1])
+							ret = '{ "name" : "' + node.children[0] + '", "value" : "' + getValue(node.children[0]) + '", "params" : [' + execute(node.children[1]) + ']}';
+						else
+							ret = '{ "name" : "' + node.children[0] + '", "value" : "' + getValue(node.children[0]) + '", "params" : []}';
+						break;
+					case OP_CONSTRAINT://TODO need check the Variables and which of them are inputs and wich of them are outputs (callback?).
+						var constraintName = node.children[0];
+//						sys.debug(execute(node.children[1]));
+				//		sys.debug(eval("JSON.parse(\"" + execute(node.children[1]) + "\");"));
+						ret = eval(constraintName + "_okc_hook" + "(eval(\'([\' + \'" + execute(node.children[1]) + "\' + \'])\'), peerHelper);"); //according to "Conventions over configurations"
+						if(ret == null || ret == undefined)
+							throw invalidOKCException(funcName);
+						break;
+					case OP_NEGATE:
+						ret = !execute(node.children[0]);	
+						break;
+					case OP_LOGAND:
+						ret = execute(node.children[0]) && execute(node.children[1]);
+						break;
+					case OP_LOGOR:
+						backtrack = {};
+						backtrack.v_names = v_names;
+						backtrack.v_values = v_values;
+						if(execute(node.children[0])){
+							ret = ture;
+						}
+						else{
+//							sys.debug("trackback after ||");
+							v_names = backtrack.v_names;
+							v_values = backtrack.v_values;
+							ret = execute(node.children[1]);
+						}
+						break;
+					case OP_LIST:
+						if(execute(node.children[0]) != undefined){
+							if(execute(node.children[0]).length == 0){
+								setValue(node.children[1].value.toString(), []);
+								setValue(node.children[2].value.toString(), []);
+							}
+							else if(execute(node.children[0]).length = 1){
+								setValue(node.children[1].value.toString(), execute(node.children[0])[0]);
+								setValue(node.children[2].value.toString(), []);
+							}
+							else if(execute(node.children[0]).length > 1){
+								setValue(node.children[1].value.toString(), execute(node.children[0])[0]);
+								setValue(node.children[2].value.toString(), execute(node.children[0]).slice(1));
+							}
+						}
+						else if(execute(node.children[1]) != undefined && execute(node.children[2]) != undefined){
+							setValue(node.children[0].value.toString(), execute(node.children[1]).concat(execute(node.children[2])));
+						}
+						if(execute(node.children[1]) != undefined && execute(node.children[2]) != undefined){
+							setValue(node.children[0].value.toString(), []);
+						}
+						ret = true;
+						break;
+					case OP_THEN:
+//						sys.debug("hit 'then'");
+						emitter.removeAllListeners("nextThenDEF");
+//						sys.debug("after remove we got : " + emitter.listeners("nextThenDEF"));
+						nextThenNode = node.children[1];
+//						thens.unshift(nextThenNode);
+						emitter.on("nextThenDEF", execute);
+//						sys.debug("the next then will be: " +JSON.stringify(nextThenNode) + "  : nextThenDefLength: " + emitter.listeners("nextThenDEF").length);
+						execute(node.children[0]);
+						break;
+					case OP_OR:
+//						sys.debug("hit 'or'");
+						emitter.removeAllListeners("nextOrDEF");
+//						sys.debug("after remove we got : " + emitter.listeners("nextThenDEF"));
+						nextOrNode = node.children[1];
+						emitter.on("nextOrDEF", execute);
+						backtrack = {};
+						backtrack.v_names = v_names;
+						backtrack.v_values = v_values;
+						execute(node.children[0]);
+						break;
+/*					case OP_PAR:
+						
+						break;
+*/						
+					case OP_SEND:
+//						sys.debug("message : " + JSON.stringify(node.children[0]));
+//						sys.debug("receipient : " + execute(node.children[1]));
+						var msgNode = node.children[0];
+						var roleNode = node.children[1];
+						var solved = true;
+						if(node.children[2]){
+							solved = execute(node.children[2]);
+//							sys.debug("solved : " + solved);
+							if(solved){
+								var message = execute(msgNode);
+								var recepientJID = execute(roleNode);
+								sendMSG(message, recepientJID);
+								sys.debug("Message sent!");
+							}
+							executeNextThenOrOrBranch(solved);
+						}
+						else{
+							sendMSG(execute(msgNode), execute(roleNode));
+							sys.debug("Message sent!");
+//							sys.debug("next then DEF: " + emitter.listeners("nextThenDEF"));
+							executeNextThenOrOrBranch(true);
+						}
+						break;
+					case OP_RECEIVE: 
+						emitter.removeAllListeners("receive");
+						currentMessageNode = node.children[0];
+						currentRoleNode = node.children[1];
+						if(node.children[2]){
+							currentConstraintsNode = node.children[2];
+						}
+						else{
+							currentConstriantsNode = null;
+						}
+						emitter.on("msgReceived", receiveMSG);
+						sys.debug("Start waiting for a new message");
+//						sys.debug(OKBuzzer.on_message("<message from='aaa' to='bbb' type='chat'><body>test</body></message>"));
+						break;
+					case OP_MESSAGE:
+						ret = '{ "name" : "' + node.children[0] + '", "value" : "' + getValue(node.children[0]) + '", "params" : [' + execute(node.children[1]) + ']}';
+//						sys.debug("return message : " + ret);
+						break;
+					case OP_NO_MSG:
+						ret = execute(node.children[0]);
+						executeNextThenOrOrBranch(ret);
+						break;						
+				}
+				break;
+			case NODE_VAR:
+				if(getValue(node.value))
+					ret = getValue(node.value);
+				else
+					ret = node.value;
+				break;
+			case NODE_CONST:
+				ret = node.value;
+				break;
+		}
+		return ret;
+	}
+	
+	function invalidOKCException(okcName){
+		return "OKC " + "'" + okcName + "()' has not been loaded."; 
+	}
+	
+	function roleDefinitionNotFoundException(roleName){
+		return "Role " + "'" + roleName + "' has not been defined in this interaction model.";
+	}
+	
+	function constraitsSolvingFailedException(){
+		return "Constraints can not be solved. Interaction terminated without completion!";
+	}
+
+	
+*]
+
+/~ Lightweight Coordination Calculus (LCC) Interpreter ~/
+
+/~ Tokens to be ignored ~/
+!	' |\r|\n|\t|//[^\n]*\n '
+        ;						
+
+/~ Grammar tokens ~/
+	"HEAD"
+	"A"
+/~	"OKC" ~/
+	"OR"
+	"THEN"
+/~  "PAR" ~/
+	"KNOWS"
+	"PLAYS"
+	"NULL"
+/~	"MSG" ~/
+/~	"TEXT" ~/
+/~	"INPUT" ~/
+/~	"INITIAL" ~/
+	'::'
+	','
+	'\.'
+	'\('
+	'\)'
+	'\['
+	'\]'
+	'=>'
+	'<='
+	'->'
+	'<-'
+	'='
+	'_'
+	'\|'                             ListBar
+	"NOT"									/~ logical "NOT" ~/
+	'([A-Z][A-Za-z0-9_]*)'	Variable
+	'(([\'\"])?[a-z][A-Za-z0-9_@\.://]*([\'\"])?)|(([\'\"])?([0-9])+([\'\"])?)'		Constant
+	'\[(.)+\]'				JSON
+	;
+	
+	
+/~ associativity ~/
+>	"OR"							
+	;
+
+>	"THEN"
+	;
+
+>       "<="
+        "=>"
+        ;
+
+>       "<-"
+        "->"
+        ;
+
+>	"\|\|"									/~ logical "OR" ~/
+	;
+	
+>	"&&"									/~ logical "AND" ~/
+	;	
+##
+
+IM:		Clause_List	BuiltIn_List						[* initialize(%1, %2); *]
+		| BuiltIn_List Clause_List						[* initialize(%2, %1); *]
+		| HEAD '(' JSON ')' '.' Clause_List 			[* initializeByHeader(%3, %6); *]
+		| Clause_List HEAD '(' JSON ')' '.'				[* initializeByHeader(%4, %1); *]
+		| HEAD '(' JSON ')' '.' Clause_List BuiltIn_List			[* initializeByHeader(%3, %6, %7); *]
+		| HEAD '(' JSON ')' '.' BuiltIn_List Clause_List 			[* initializeByHeader(%3, %7, %6); *]
+		;
+
+Clause_List:	Clause									[* %% = createNode(NODE_OP, OP_CLAUSE, %1); *]
+                | Clause Clause_List					[* %% = createNode(NODE_OP, OP_CLAUSE, %1, %2); *]
+	        ;
+
+Clause:	Role '::' Def '.'								[* %% = createNode(NODE_OP, OP_HEADBODY, %1, %3); *]		
+		| Role '.'										[* %% = createNode(NODE_OP, OP_ENTRY, %1); *]
+		;	
+		
+BuiltIn_List: 	BuiltIn									[* %% = createNode(NODE_OP, OP_CLAUSE, %1); *]
+				| BuiltIn BuiltIn_List					[* %% = createNode(NODE_OP, OP_CLAUSE, %1, %2); *]
+				;
+		
+BuiltIn:	PLAYS '(' Constant ',' Constant ')'	'.'						[* %% = createNode(NODE_OP, OP_PLAYS, %3, %5); *]
+		 	| KNOWS '(' Constant ')' '.'								[* %% = createNode(NODE_OP, OP_KNOWS, %3); *] 
+		 	;
+
+Role:	A '(' Type ',' Id ')'                           [* %% = createNode(NODE_OP, OP_ROLE, %3, %5); *]
+		;
+
+Type:	Term                                                [* %% = createNode(NODE_OP, OP_ROLE_TYPE, %1); *]
+		;
+	
+Def:	Interaction												  /~ [* %% = %1; *] ~/
+		| Def THEN Def                                            [* %% = createNode(NODE_OP, OP_THEN, %1, %3); *]
+		| Def OR Def                                              [* %% = createNode(NODE_OP, OP_OR, %1, %3); *]
+/~		| Def PAR Def                                             [* %% = createNode(NODE_OP, OP_PAR, %1, %3); *] ~/
+		;
+
+Interaction:	Message '=>' Role                                 [* %% = createNode(NODE_OP, OP_SEND, %1, %3); *]
+				| Message '=>' Role '<-' Constraint               [* %% = createNode(NODE_OP, OP_SEND, %1, %3, %5); *]
+				| Message '<=' Role                               [* %% = createNode(NODE_OP, OP_RECEIVE, %1, %3); *]
+				| Constraint '<-' Message '<=' Role               [* %% = createNode(NODE_OP, OP_RECEIVE, %3, %5, %1); *]
+				| NULL '<-' Constraint                            [* %% = createNode(NODE_OP, OP_NO_MSG, %3); *]   /~ not in the original BNF declaration on the openk website ~/
+				| Role											  [* %% = createNode(NODE_OP, OP_ROLE_CHANGE, %1 );*]
+	      		| Role '<-' Constraint							  [* %% = createNode(NODE_OP, OP_ROLE_CHANGE, %1, %3) *]			
+				;
+
+Constraint:	Constant  											[* %% = true; *]
+			| Constant '(' Terms ')'                            [* %% = createNode(NODE_OP, OP_CONSTRAINT, %1, %3); *]
+			| NOT '(' Constraint ')'                            [* %% = createNode(NODE_OP, OP_NEGATE, %3); *]
+			| Constraint '&&' Constraint                        [* %% = createNode(NODE_OP, OP_LOGAND, %1, %3); *]
+			| Constraint '\|\|' Constraint                      [* %% = createNode(NODE_OP, OP_LOGOR, %1, %3); *] 
+			| Variable '=' '\[' Variable ListBar Variable '\]'	[* %% = createNode(NODE_OP, OP_LIST, %1, %4, %6); *] 
+			;
+	
+Terms:	Terms ',' Term                                          [* %% = createNode(NODE_OP, OP_TERMS, %1, %3); *] 
+		| Term                                                  [* %% = createNode(NODE_OP, OP_TERMS, %1); *] 
+		;
+		
+Term:	Constant                                                [* %% = createNode(NODE_OP, OP_FACTOR, %1); *] 
+		| Variable                                              [* %% = createNode(NODE_OP, OP_FACTOR, %1); *] 
+		| Constant '(' Terms ')'                                [* %% = createNode(NODE_OP, OP_FACTOR, %1, %3)*]
+		| '_'
+		;
+
+Id:	Constant                                                    [* %% = createNode(NODE_CONST, %1); *] 
+	| Variable                                                  [* %% = createNode(NODE_VAR, %1); *]  
+	;
+
+Message:	Constant '(' Terms ')'                              [* %% = createNode(NODE_OP, OP_MESSAGE, %1, %3); *]
+			;
+
+[*
+	if(process.argv.length == 5) {
+		var client = new xmpp.Client({jid : process.argv[3], password : process.argv[4]});
+		client.on("online", function(){
+			var str = require("fs").readFileSync( process.argv[2] ).toString("utf-8");
+			var error_cnt = 0;
+			var error_off = new Array();
+			var error_la = new Array();
+		
+			if((error_cnt = __##PREFIX##parse(str, error_off, error_la)) > 0) {
+			    var i;
+				for( i = 0; i < error_cnt; i++ ) {
+					console.log( "Parse error near >" + str.substr( error_off[i], 30 ) + "<, expecting \"" + error_la[i].join() + "\"" );
+				}
+				process.exit(1);
+			}
+			
+			client.send(new xmpp.Element("presence", { }));
+			sys.debug("Connected to the XMPP server!");
+			
+		});
+		client.on("stanza", function(stanza) {
+  			if (stanza.is("message") && stanza.attrs.type !== "error") {
+  				var body = stanza.getChildren("body")[0].getText();
+				emitter.emit("gotMessageFromXMPPServer", {"from" : stanza.attrs.from, "body" : body});
+				stanza.attrs.to = stanza.attrs.from;
+        		delete stanza.attrs.from;
+      			client.send(stanza);
+  			}
+        });
+		client.on("error", function(e){
+			sys.debug(e);
+			process.exit(1);
+		});
+	}
+	else {
+		console.log("Usage: node node-xlcc.js <IM_NAME.im> <JID> <PASSWORD>");
+		process.exit(1);
+	}
+*]					
