@@ -4,6 +4,8 @@
 // FOR NODEJS ONLY >>>>>>>>>>>
 	
 	var sys = require("sys");
+	var http = require("http");
+	var url = require("url");
 	var events = require("events");
 	var emitter = new events.EventEmitter;
 	var xmpp = require("../lib/node-xmpp/lib/node-xmpp");
@@ -275,30 +277,43 @@
 		return role_head.children[0].children[0].toString();
 	}
 	
-	function retrieveOKCs(okcs, headElem, count, length, node){
-		var okcElem = document.createElement("script");
-		headElem.appendChild(okcElem);
-		okcElem.type = "text/javascript";
-		okcElem.src =  okcs[count];
-		okcElem.onload = function () {
-			sys.debug("OKC [" + okcs[count] + "] loaded!");
-			count++;
-			if(count == length){
-				sys.debug("OKCs loading finished!");
-//				sys.debug(JSON.stringify(node));
-				emitter.emit("okcs loaded", node);
-			}
-			else{
-				retrieveOKCs(okcs, headElem, count, length, node);
-			}
+	function retrieveOKCs(okcs, count, length, node){
+	 	var url_obj = url.parse(okcs[count]);
+		var options = {
+			host: url_obj.hostname,
+			port: url_obj.port,
+			path: url_obj.pathname,
+			method: "GET"
 		};
+		sys.debug(JSON.stringify(options));
+		var request = http.request(options, function(res) {
+//			res.setEncoding("utf8");
+			res.on("data", function(chunk){
+//				sys.debug(chunk);
+				eval(chunk.toString());
+				sys.debug("OKC [" + okcs[count] + "] loaded!");
+				count++;
+				if(count == length){
+					sys.debug("OKCs loading finished!");
+//					sys.debug(JSON.stringify(node));
+					emitter.emit("okcs loaded", node);
+				}
+				else{
+					retrieveOKCs(okcs, count, length, node);
+				}
+			}).on("end", function(){
+				sys.debug("okc loaded");
+			});
+		}).on("error", function(e) {
+			sys.debug("okc loading error: " + e.message);
+		}).end();
 	}
 	
 	function initialize(clauses, builtIns){
 		init = new Array();
 		okcs = new Array();
 		execute(builtIns);
-		peerID = document.getElementById("jid").value;		//based on user's inputs
+//		peerID = document.getElementById("jid").value;		//based on user's inputs
 //		sys.debug("Start interpreting the codes");
 		emitter.on("okcs loaded", execute);
 //		sys.debug(init[0].jid.toString());
@@ -316,12 +331,12 @@
 		}
 		var count = 0;
 		var length = okcs.length;
-		var headElem = document.getElementsByTagName("head")[0];
-		retrieveOKCs(okcs, headElem, count, length, clauses);
+//		sys.debug("length: " + JSON.stringify(okcs));
+		retrieveOKCs(okcs, count, length, clauses);
 	}
 	
 	function initializeByHeader(jsonStr, clauses, builtIns){
-		peerID = document.getElementById("jid").value;		//based on user's inputs
+//		peerID = document.getElementById("jid").value;		//based on user's inputs
 //		sys.debug("Start interpreting the codes");
 		emitter.on("okcs loaded", execute);
 //		sys.debug("node " + JSON.stringify(clauses, null, "\t"));
@@ -342,8 +357,7 @@
 		}
 		var count = 0;
 		var length = okcs.length;
-		var headElem = document.getElementsByTagName("head")[0];
-		retrieveOKCs(okcs, headElem, count, length, clauses);
+		retrieveOKCs(okcs, count, length, clauses);
 	}
 	
 //	function sendtext(){
@@ -828,6 +842,10 @@ Message:	Constant '(' Terms ')'                              [* %% = createNode(
 	if(process.argv.length == 5) {
 		var client = new xmpp.Client({jid : process.argv[3], password : process.argv[4]});
 		client.on("online", function(){
+			peerID = process.argv[3];
+			client.send(new xmpp.Element("presence", { }));
+			sys.debug("Connected to the XMPP server!");
+			
 			var str = require("fs").readFileSync( process.argv[2] ).toString("utf-8");
 			var error_cnt = 0;
 			var error_off = new Array();
@@ -840,10 +858,6 @@ Message:	Constant '(' Terms ')'                              [* %% = createNode(
 				}
 				process.exit(1);
 			}
-			
-			client.send(new xmpp.Element("presence", { }));
-			sys.debug("Connected to the XMPP server!");
-			
 		});
 		client.on("stanza", function(stanza) {
   			if (stanza.is("message") && stanza.attrs.type !== "error") {
@@ -860,7 +874,7 @@ Message:	Constant '(' Terms ')'                              [* %% = createNode(
 		});
 	}
 	else {
-		console.log("Usage: node node-xlcc.js <IM_NAME.im> <JID> <PASSWORD>");
+		console.log("Usage: node node-xlcc.js <IM_NAME.xlc> <JID> <PASSWORD>");
 		process.exit(1);
 	}
 *]					
