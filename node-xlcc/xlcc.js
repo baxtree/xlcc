@@ -287,8 +287,8 @@
 		var request = http.request(options, function(res) {
 //			res.setEncoding("utf8");
 			res.on("data", function(chunk){
-				sys.debug(chunk);
-				eval(chunk.toString());
+//				sys.debug(chunk);
+				eval.call(null, chunk.toString());
 				sys.debug("OKC [" + okcs[count] + "] loaded!");
 				count++;
 				if(count == length){
@@ -368,6 +368,7 @@
 		var success;
 		sys.debug("Sending message " + message + " to " + recepientJID);
 		var fullJID = recepientJID + "/" + xmpp_resource;
+		sys.debug("to: " + fullJID);
 		client.send(new xmpp.Element("message", {to : fullJID, type : "chat"}).c("body").t(message));
 //		sendtext();
 		success = true;
@@ -386,6 +387,7 @@
 	
 	function onMessageArrival(msg) {
 		sys.debug("A new message came : " + msg.body); 
+		sys.debug(emitter.listeners("gotMessageFromXMPPServer").length);
 		var senderJID = msg.from.toString();
 		//TODO the sender id and the resource need to be checked here.
 		var msgBody = JSON.parse(msg.body);
