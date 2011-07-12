@@ -401,6 +401,7 @@
 		var success;
 		sys.debug("Sending message " + message + " to " + recepientJID);
 		var fullJID = recepientJID + "/" + xmpp_resource;
+		sys.debug("to: " + fullJID);
 		client.send(new xmpp.Element("message", {to : fullJID, type : "chat"}).c("body").t(message));
 //		sendtext();
 		success = true;
