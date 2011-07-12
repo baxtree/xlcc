@@ -107,6 +107,8 @@
 		}
 		return undefined;
 	}
+
+/*	commented out due to the do-not-blocking-the-event-loop requirement by node.js
 	
 	function prepareVariableList(factors){
 		var variable_list = [];
@@ -124,7 +126,10 @@
 		}
 		return variable_list;
 	}
-	
+*/
+
+/*	commented out due to the do-not-blocking-the-event-loop requirement by node.js
+
 	function buildVariableList(variable_list, loop_counter, callback){
 		if(variable_list.length != 0){
 			process.stdout.write("Please assign a new value to variable '" + variable_list[loop_counter] + "':");
@@ -145,8 +150,11 @@
 			});
 		}
 	}
+*/
 	
-/*	function buildVariableList(variable_list, callback){
+/*	commented out due to the do-not-blocking-the-event-loop requirement by node.js
+
+	function buildVariableList(variable_list, callback){
 		if(variable_list.length != 0){
 			prompt.start();
 //			prompt.get(variable_list, function(err, result){
@@ -155,14 +163,18 @@
 				callback();
 			});
 		}
-	}*/
+	}
+*/
 	
+/*  commented out due to the do-not-blocking-the-event-loop requirement by node.js
+
 	function readValue(factors, callback1){
 		var variable_list = buildVariableList;
 		buildVariableList(variable_list, function(){
 			callback1();		
 		});
 	}
+*/
 	
 	function serialiseValue(factors){
 		var content = "";
@@ -193,7 +205,7 @@
 	var peerHelper = { 
 		"setValue" : setValue, 
 		"getValue" : getValue,
-		"readValue" : readValue,
+//		"readValue" : readValue,	  commented out due to the do-not-blocking-the-event-loop requirement by node.js
 		"displayValue" : displayValue
 	}
 	
@@ -556,9 +568,7 @@
 								ret = jid; 
 							}
 						}
-						readValue(temp, function(){
-							
-						});
+						//possibly read in values inside temp here.
 						sys.debug("after prompt");
 						break;
 					case OP_KNOWS:
@@ -576,7 +586,6 @@
 					case OP_ID:
 						if(node.children[0])
 							xmpp_resource = node.children[0].toString();
-						alert("in OP_ID " + OKBuzzer.resource);
 						break;
 					case OP_ROLE_TYPE:
 						var ret = execute(node.children[0]);
