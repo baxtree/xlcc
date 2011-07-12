@@ -64,7 +64,8 @@
 	var OP_PAR			= 21;
 	var OP_KNOWS		= 22;
 	var OP_PLAYS		= 23;
-	var OP_CLAUSE		= 24;
+	var OP_ID			= 24;
+	var OP_CLAUSE		= 25;
 	
 	function Node(){
 		var type;
@@ -402,7 +403,6 @@
 		var success;
 		sys.debug("Sending message " + message + " to " + recepientJID);
 		var fullJID = recepientJID + "/" + xmpp_resource;
-		sys.debug("to: " + fullJID);
 		client.send(new xmpp.Element("message", {to : fullJID, type : "chat"}).c("body").t(message));
 //		sendtext();
 		success = true;
@@ -520,6 +520,7 @@
 						if(node.children[0]){
 							role_heads.push(node.children[0]);
 //							execute(node.children[0]);
+
 						}
 						if(node.children[1]){
 							role_bodies.push(node.children[1]);
@@ -572,6 +573,11 @@
 							info["role"] = node.children[1].toString();
 							init.push(info);	
 						}
+						break;
+					case OP_ID:
+						if(node.children[0])
+							xmpp_resource = node.children[0].toString();
+						alert("in OP_ID " + OKBuzzer.resource);
 						break;
 					case OP_ROLE_TYPE:
 						var ret = execute(node.children[0]);
@@ -760,6 +766,7 @@
 /~  "PAR" ~/
 	"KNOWS"
 	"PLAYS"
+	"ID"
 	"NULL"
 /~	"MSG" ~/
 /~	"TEXT" ~/
@@ -830,6 +837,7 @@ BuiltIn_List: 	BuiltIn									[* %% = createNode(NODE_OP, OP_CLAUSE, %1); *]
 		
 BuiltIn:	PLAYS '(' Constant ',' Constant ')'	'.'						[* %% = createNode(NODE_OP, OP_PLAYS, %3, %5); *]
 		 	| KNOWS '(' Constant ')' '.'								[* %% = createNode(NODE_OP, OP_KNOWS, %3); *] 
+		 	| ID '(' Constant ')' '.'									[* %% = createNode(NODE_OP, OP_ID, %3); *]
 		 	;
 
 Role:	A '(' Type ',' Id ')'                           [* %% = createNode(NODE_OP, OP_ROLE, %3, %5); *]
