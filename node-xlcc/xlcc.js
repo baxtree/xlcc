@@ -108,8 +108,6 @@
 		return undefined;
 	}
 
-/*	commented out due to the do-not-blocking-the-event-loop requirement by node.js
-	
 	function prepareVariableList(factors){
 		var variable_list = [];
 		if(factors.length != 0){
@@ -120,13 +118,17 @@
 					}
 				}
 				if(factors[i].params && factors[i].params.length != 0){
-					prepareVariableList(factors[i].params);
+					variable_list = variable_list.concat(prepareVariableList(factors[i].params));
 				}
 			}
 		}
 		return variable_list;
 	}
-*/
+	
+	function getUndefinedList(factors){
+		return prepareVariableList(factors);
+	}
+
 
 /*	commented out due to the do-not-blocking-the-event-loop requirement by node.js
 
@@ -202,10 +204,21 @@
 		sys.debug(serialiseValue(factors));
 	}
 	
+	function print(str){
+		sys.print(str);
+	}
+	
+	function println(str){
+		sys.puts(str);
+	}
+	
 	var peerHelper = { 
 		"setValue" : setValue, 
 		"getValue" : getValue,
 //		"readValue" : readValue,	  commented out due to the do-not-blocking-the-event-loop requirement by node.js
+		"getUndefinedList" : getUndefinedList, 
+		"print" : print,
+		"println" : println,
 		"displayValue" : displayValue
 	}
 	
@@ -413,7 +426,7 @@
 		var success;
 		sys.debug("Sending message " + message + " to " + recepientJID);
 		var fullJID = recepientJID + "/" + xmpp_resource;
-		sys.debug("to: " + fullJID);
+//		sys.debug("to: " + fullJID);
 		client.send(new xmpp.Element("message", {to : fullJID, type : "chat"}).c("body").t(message));
 //		sendtext();
 		success = true;
@@ -569,7 +582,7 @@
 							}
 						}
 						//possibly read in values inside temp here.
-						sys.debug("after prompt");
+//						sys.debug("after prompt");
 						break;
 					case OP_KNOWS:
 						if(node.children[0])
@@ -608,7 +621,7 @@
 						var constraintName = node.children[0];
 //						sys.debug(execute(node.children[1]));
 				//		sys.debug(eval("JSON.parse(\"" + execute(node.children[1]) + "\");"));
-						ret = eval(constraintName + "_okc_hook" + "(eval(\'([\' + \'" + execute(node.children[1]) + "\' + \'])\'), peerHelper);"); //according to "Conventions over configurations"
+						ret = eval(constraintName + "_okc_hook" + "(eval(\'([\' + \'" + execute(node.children[1]) + "\' + \'])\'), peerHelper, sys);"); //according to "Conventions over configurations"
 						if(ret == null || ret == undefined)
 							throw invalidOKCException(funcName);
 						break;
