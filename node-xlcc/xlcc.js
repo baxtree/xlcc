@@ -5,18 +5,12 @@
 	var http = require("http");
 	var url = require("url");
 	var events = require("events");
-	var emitter = new events.EventEmitter;
 	var xmpp = require("../lib/node-xmpp/lib/node-xmpp");
 	var prompt = require("prompt");
-	var xmpp_resource = undefined; //TODO: this needs to be passed from the LCC codes
 	
-
 // FOR NODEJS ONLY <<<<<<<<<<<
 
 	var constraints = {};
-	emitter.removeAllListeners("okcs loaded");
-	emitter.removeAllListeners("gotMessageFromXMPPServer");
-	emitter.on("gotMessageFromXMPPServer", onMessageArrival);
 	var v_names = new Array();
 	var v_values = new Array();
 	var backtrack = undefined;
@@ -30,7 +24,15 @@
 	var currentConstraintsNode = undefined;
 	var nextThenNode = undefined;
 	var nextOrNode = undefined;
-	var peerID = undefined;
+	var peerFullID = undefined;
+	var peerPassword = undefined;
+	var client = undefined;
+	var xmpp_resource = undefined;
+	
+	var emitter = new events.EventEmitter;
+	emitter.removeAllListeners("okcs loaded");
+	emitter.removeAllListeners("gotMessageFromXMPPServer");
+	emitter.on("gotMessageFromXMPPServer", onMessageArrival);
 	
 	var NODE_OP			= 1;
 	var NODE_VAR 		= 2;
@@ -128,6 +130,18 @@
 	function getUndefinedList(factors){
 		return prepareVariableList(factors);
 	}
+	
+	function setUndefinedList(variable_list, value_list){
+		if(variable_list.length == value_list.length){
+			for(var i = 0; i < variable_list.length; i++){
+				setValue(variable_list[i], value_list[i]);
+			}
+			return true;
+		}
+		else{
+			return false;
+		}
+	}
 
 
 /*	commented out due to the do-not-blocking-the-event-loop requirement by node.js
@@ -216,7 +230,8 @@
 		"setValue" : setValue, 
 		"getValue" : getValue,
 //		"readValue" : readValue,	  commented out due to the do-not-blocking-the-event-loop requirement by node.js
-		"getUndefinedList" : getUndefinedList, 
+		"setUndefinedList" : setUndefinedList,
+		"getUndefinedList" : getUndefinedList, 		
 		"print" : print,
 		"println" : println,
 		"displayValue" : displayValue
@@ -369,30 +384,48 @@
 		init = new Array();
 		okcs = new Array();
 		execute(builtIns);
-//		peerID = document.getElementById("jid").value;		//based on user's inputs
-//		sys.debug("Start interpreting the codes");
-		emitter.on("okcs loaded", execute);
-//		sys.debug(init[0].jid.toString());
-		for(var i = 0; i < init.length; i++){
-			if(init[i].iid){
-				xmpp_resource = init[i].iid.toString();
-				sys.debug("Interaction ID is " + xmpp_resource);
-			}
-			if(init[i].okcs){
-				for(var j = 0; j < init[i].okcs.length; j++){
-					okcs.push(init[i].okcs[j]);
-	//				sys.debug(init[i].okcs[j]);
+		peerFullID = process.argv[3] + "/" + xmpp_resource;
+		peerPassword = process.argv[4]
+		client = new xmpp.Client({jid : peerFullID, password : peerPassword});
+		client.on("online", function(){
+			client.send(new xmpp.Element("presence", { }));
+			sys.debug("Connected to the XMPP server!");
+//			sys.debug("Start interpreting the codes");
+			emitter.on("okcs loaded", execute);
+//			sys.debug(init[0].jid.toString());
+			for(var i = 0; i < init.length; i++){
+//				if(init[i].iid){
+//					xmpp_resource = init[i].iid.toString();
+//					sys.debug("Interaction ID is " + xmpp_resource);
+//				}
+				if(init[i].okcs){
+					for(var j = 0; j < init[i].okcs.length; j++){
+						okcs.push(init[i].okcs[j]);
+//						sys.debug(init[i].okcs[j]);
+					}
 				}
 			}
-		}
-		var count = 0;
-		var length = okcs.length;
-//		sys.debug("length: " + JSON.stringify(okcs));
-		retrieveOKCs(okcs, count, length, clauses);
+			var count = 0;
+			var length = okcs.length;
+//			sys.debug("length: " + JSON.stringify(okcs));
+			retrieveOKCs(okcs, count, length, clauses);
+		});
+		client.on("stanza", function(stanza) {
+			sys.debug("from: " + stanza.attrs.from + " to: " + stanza.attrs.to + " full jid : " + peerFullID + " type: " + stanza.attrs.type);
+  			if (stanza.is("message") && stanza.attrs.type && stanza.attrs.type != "error" && stanza.attrs.to == peerFullID) {
+  				var body = stanza.getChildren("body")[0].getText();
+				emitter.emit("gotMessageFromXMPPServer", {"from" : stanza.attrs.from, "body" : body});
+  			}
+        });
+		client.on("error", function(e){
+			sys.debug(e);
+			process.exit(1);
+		});
 	}
 	
+/* 	is not needed on the server side
+
 	function initializeByHeader(jsonStr, clauses, builtIns){
-//		peerID = document.getElementById("jid").value;		//based on user's inputs
 //		sys.debug("Start interpreting the codes");
 		emitter.on("okcs loaded", execute);
 //		sys.debug("node " + JSON.stringify(clauses, null, "\t"));
@@ -415,6 +448,7 @@
 		var length = okcs.length;
 		retrieveOKCs(okcs, count, length, clauses);
 	}
+*/
 	
 //	function sendtext(){
 //		var fullJID = 
@@ -424,10 +458,10 @@
 	
 	function sendMSG(message, recepientJID){
 		var success;
-		sys.debug("Sending message " + message + " to " + recepientJID);
-		var fullJID = recepientJID + "/" + xmpp_resource;
-//		sys.debug("to: " + fullJID);
-		client.send(new xmpp.Element("message", {to : fullJID, type : "chat"}).c("body").t(message));
+		var recepientFullID = recepientJID + "/" + xmpp_resource;
+		sys.debug("Sending message " + message + " from " + peerFullID + " to " + recepientFullID);
+//		sys.debug("to: " + recepientFullID);
+		client.send(new xmpp.Element("message", {from : peerFullID, to : recepientFullID, type : "chat"}).c("body").t(message));
 //		sendtext();
 		success = true;
 		return success;
@@ -729,7 +763,6 @@
 						}
 						emitter.on("msgReceived", receiveMSG);
 						sys.debug("Start waiting for a new message");
-//						sys.debug(OKBuzzer.on_message("<message from='aaa' to='bbb' type='chat'><body>test</body></message>"));
 						break;
 					case OP_MESSAGE:
 						ret = '{ "name" : "' + node.children[0] + '", "value" : "' + getValue(node.children[0]) + '", "params" : [' + execute(node.children[1]) + ']}';
@@ -2319,38 +2352,18 @@ switch( act )
 
 
 	if(process.argv.length == 5) {
-		var client = new xmpp.Client({jid : process.argv[3], password : process.argv[4]});
-		client.on("online", function(){
-			peerID = process.argv[3];
-			client.send(new xmpp.Element("presence", { }));
-			sys.debug("Connected to the XMPP server!");
-			
-			var str = require("fs").readFileSync( process.argv[2] ).toString("utf-8");
-			var error_cnt = 0;
-			var error_off = new Array();
-			var error_la = new Array();
-		
-			if((error_cnt = __NODEJS_parse(str, error_off, error_la)) > 0) {
-			    var i;
-				for( i = 0; i < error_cnt; i++ ) {
-					console.log( "Parse error near >" + str.substr( error_off[i], 30 ) + "<, expecting \"" + error_la[i].join() + "\"" );
-				}
-				process.exit(1);
+		var str = require("fs").readFileSync( process.argv[2] ).toString("utf-8");
+		var error_cnt = 0;
+		var error_off = new Array();
+		var error_la = new Array();
+	
+		if((error_cnt = __NODEJS_parse(str, error_off, error_la)) > 0) {
+		    var i;
+			for( i = 0; i < error_cnt; i++ ) {
+				console.log( "Parse error near >" + str.substr( error_off[i], 30 ) + "<, expecting \"" + error_la[i].join() + "\"" );
 			}
-		});
-		client.on("stanza", function(stanza) {
-  			if (stanza.is("message") && stanza.attrs.type !== "error") {
-  				var body = stanza.getChildren("body")[0].getText();
-				emitter.emit("gotMessageFromXMPPServer", {"from" : stanza.attrs.from, "body" : body});
-				stanza.attrs.to = stanza.attrs.from;
-        		delete stanza.attrs.from;
-      			client.send(stanza);
-  			}
-        });
-		client.on("error", function(e){
-			sys.debug(e);
 			process.exit(1);
-		});
+		}
 	}
 	else {
 		console.log("Usage: node node-xlcc.js <IM_NAME.xlc> <JID> <PASSWORD>");

@@ -19,4 +19,4 @@ plays(baxtree2@jabber.org, shop).
 
 knows(http://okbook.inf.ed.ac.uk:8188/okbook/im/aliceNode.js).
 
-id(timestamp_and_random_factor_and_sha1_of_IMURI_and_community_domain).
+id(123456).
