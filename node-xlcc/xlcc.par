@@ -130,6 +130,18 @@
 	function getUndefinedList(factors){
 		return prepareVariableList(factors);
 	}
+	
+	function setUndefinedList(variable_list, value_list){
+		if(variable_list.length == value_list.length){
+			for(var i = 0; i < variable_list.length; i++){
+				setValue(variable_list[i], value_list[i]);
+			}
+			return true;
+		}
+		else{
+			return false;
+		}
+	}
 
 
 /*	commented out due to the do-not-blocking-the-event-loop requirement by node.js
@@ -218,7 +230,8 @@
 		"setValue" : setValue, 
 		"getValue" : getValue,
 //		"readValue" : readValue,	  commented out due to the do-not-blocking-the-event-loop requirement by node.js
-		"getUndefinedList" : getUndefinedList, 
+		"setUndefinedList" : setUndefinedList,
+		"getUndefinedList" : getUndefinedList, 		
 		"print" : print,
 		"println" : println,
 		"displayValue" : displayValue
