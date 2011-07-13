@@ -65,7 +65,7 @@
 	var OP_PAR			= 21;
 	var OP_KNOWS		= 22;
 	var OP_PLAYS		= 23;
-	var OP_ID			= 24;
+	var OP_IID			= 24;
 	var OP_CLAUSE		= 25;
 	
 	function Node(){
@@ -454,7 +454,7 @@
 	
 //	function sendtext(){
 //		var fullJID = 
-//		client.send(new xmpp.Element("message", {to : "bob@okbook.inf.ed.ac.uk", type : "chat"})..c("body").t("send"));
+//		client.send(new xmpp.Element("message", {to : "bob@okbook.inf.ed.ac.uk", type : "chat"}).c("body").t("send"));
 //		setTimeout('sendtext();', 3000);
 //	}
 	
@@ -467,6 +467,10 @@
 //		sendtext();
 		success = true;
 		return success;
+	}
+	
+	function getLatestOfflineMessage(senderFullID, callback){
+	
 	}
 	
 	function updateVariableValueInJSON(src_msg, dest_msg){
@@ -632,7 +636,7 @@
 							init.push(info);	
 						}
 						break;
-					case OP_ID:
+					case OP_IID:
 						if(node.children[0])
 							xmpp_resource = node.children[0].toString();
 						break;
@@ -765,6 +769,7 @@
 						}
 						emitter.on("msgReceived", receiveMSG);
 						sys.debug("Start waiting for a new message");
+						client.send(new xmpp.Element("presence", { }));	// retrieve offline message does not work this way
 						break;
 					case OP_MESSAGE:
 						ret = '{ "name" : "' + node.children[0] + '", "value" : "' + getValue(node.children[0]) + '", "params" : [' + execute(node.children[1]) + ']}';
@@ -822,7 +827,7 @@
 /~  "PAR" ~/
 	"KNOWS"
 	"PLAYS"
-	"ID"
+	"IID"
 	"NULL"
 /~	"MSG" ~/
 /~	"TEXT" ~/
@@ -893,7 +898,7 @@ BuiltIn_List: 	BuiltIn									[* %% = createNode(NODE_OP, OP_CLAUSE, %1); *]
 		
 BuiltIn:	PLAYS '(' Constant ',' Constant ')'	'.'						[* %% = createNode(NODE_OP, OP_PLAYS, %3, %5); *]
 		 	| KNOWS '(' Constant ')' '.'								[* %% = createNode(NODE_OP, OP_KNOWS, %3); *] 
-		 	| ID '(' Constant ')' '.'									[* %% = createNode(NODE_OP, OP_ID, %3); *]
+		 	| IID '(' Constant ')' '.'									[* %% = createNode(NODE_OP, OP_IID, %3); *]
 		 	;
 
 Role:	A '(' Type ',' Id ')'                           [* %% = createNode(NODE_OP, OP_ROLE, %3, %5); *]

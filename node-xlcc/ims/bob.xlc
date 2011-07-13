@@ -19,4 +19,4 @@ plays(baxtree2@jabber.org, shop).
 
 knows(http://okbook.inf.ed.ac.uk:8188/okbook/im/bobNode.js).
 
-id(123456).
+iid(123456).
