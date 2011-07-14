@@ -68,6 +68,32 @@
 	var OP_IID			= 24;
 	var OP_CLAUSE		= 25;
 	
+	process.stdin.resume();
+	read_string = function(){
+		var stdIn = {
+			start : "",
+			data : ""
+		};
+		process.stdin.resume();
+		process.stdin.removeAllListeners();
+		process.stdin.setEncoding("utf8");
+		sys.debug("a");
+		process.stdin.on("data", function (chunk) {
+			sys.debug("b"); 
+			stdIn.start = chunk;
+			process.stdout.write("You just inputed : " + chunk);
+			process.stdin.resume(); });
+		sys.debug("c");
+//		while(stdIn.start==""){};
+		sys.debug("d");
+		process.stdin.pause();
+		var data = stdIn.start;
+		stdIn.start = "";
+		sys.debug("before return");
+		return data;
+	};
+	process.stdin.pause();
+	
 	function Node(){
 		var type;
 		var value;
@@ -192,6 +218,24 @@
 		});
 	}
 */
+
+	function readValue(factors){
+		if(factors.length != 0){
+			for(var i = 0; i < factors.length; i++){
+				if(factors[i].name && factors[i].name.charAt(0) === factors[i].name.charAt(0).toUpperCase()){
+					if(!factors[i].value || factors[i].value == undefined || factors[i].value == "undefined" ){
+						sys.debug("Please assign a new value to variable '" + factors[i].name + "(" + factors[i].value + ")':");
+						var fvalue = read_string();
+						factors[i].value = fvalue;
+						setValue(factors[i].name, fvalue);
+					}
+				}
+				if(factors[i].params && factors[i].params.length != 0){
+					readValue(factors[i].params);
+				}
+			}
+		}
+	}
 	
 	function serialiseValue(factors){
 		var content = "";
@@ -230,7 +274,7 @@
 	var peerHelper = { 
 		"setValue" : setValue, 
 		"getValue" : getValue,
-//		"readValue" : readValue,	  commented out due to the do-not-blocking-the-event-loop requirement by node.js
+		"readValue" : readValue,	  // commented out due to the do-not-blocking-the-event-loop requirement by node.js
 		"setUndefinedList" : setUndefinedList,
 		"getUndefinedList" : getUndefinedList, 		
 		"print" : print,
@@ -389,7 +433,8 @@
 		peerPassword = process.argv[4]
 		client = new xmpp.Client({jid : peerFullID, password : peerPassword});
 		client.on("online", function(){
-			client.send(new xmpp.Element("presence", { }));
+//			sys.debug(new xmpp.Element("presence", { to : "test" }).c("priority"));
+			client.send(new xmpp.Element("presence", { from : peerFullID }).c("priority").t("1"));
 			sys.debug("Connected to the XMPP server!");
 //			sys.debug("Start interpreting the codes");
 			emitter.on("okcs loaded", execute);
@@ -412,7 +457,12 @@
 			retrieveOKCs(okcs, count, length, clauses);
 		});
 		client.on("stanza", function(stanza) {
-  			if (stanza.is("message") && stanza.attrs.type && stanza.attrs.type != "error") {
+//			sys.debug("get stanza :" + stanza);
+//			sys.debug("to: " + stanza.attrs.to);
+//			sys.debug("from: " + stanza.attrs.from);
+  			if (stanza.is("message") && stanza.attrs.type && 
+  				stanza.attrs.type == "chat" && stanza.attrs.from.indexOf("/") != -1 &&
+  				stanza.attrs.from.split("/")[1] == xmpp_resource) {
   				if(stanza.attrs.to == peerFullID){
 	  				var body = stanza.getChildren("body")[0].getText();
 					emitter.emit("gotMessageFromXMPPServer", {"from" : stanza.attrs.from, "body" : body});
@@ -610,6 +660,7 @@
 						var roleIdNode = execute(node.children[1]);
 //						sys.debug("role parse: " + JSON.stringify(execute(node.children[0])));
 						var temp = eval("[(" + execute(node.children[0]) + ")]");
+						readValue(temp);
 						var roleType = temp[0];
 						var roleName = roleType.name;
 						for(var i = 0; i < init.length; i++){
@@ -769,7 +820,7 @@
 						}
 						emitter.on("msgReceived", receiveMSG);
 						sys.debug("Start waiting for a new message");
-						client.send(new xmpp.Element("presence", { }));	// retrieve offline message does not work this way
+						client.send(new xmpp.Element("presence", { from : peerFullID }).c("status").t("Available").up().c("priority").t("1"));	// retrieve offline message does not work this way
 						break;
 					case OP_MESSAGE:
 						ret = '{ "name" : "' + node.children[0] + '", "value" : "' + getValue(node.children[0]) + '", "params" : [' + execute(node.children[1]) + ']}';
@@ -815,7 +866,7 @@
 /~ Lightweight Coordination Calculus (LCC) Interpreter ~/
 
 /~ Tokens to be ignored ~/
-!	' |\r|\n|\t|//[^\n]*\n '
+!	' |\r|\n|\t|//[^\n]*\n'
         ;						
 
 /~ Grammar tokens ~/

@@ -15,7 +15,7 @@ a(shop, S).
 
 plays(baxtree@jabber.org, client). 
 
-plays(baxtree2@jabber.org, shop). 
+plays(baxtree2@jabber.org, shop).  
 
 knows(http://okbook.inf.ed.ac.uk:8188/okbook/im/bobNode.js).
 
