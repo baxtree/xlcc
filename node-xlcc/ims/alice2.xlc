@@ -11,12 +11,12 @@ a(shop, S)::
 	buy(PC, CC) <= a(client(_), C) then
 	receipt(R) => a(client(_), C) <- enough_credit(CC, PC) && complete_order(PC, CC, R).
 
-a(shop, S).	
+a(client(book, card), C).	
 
 plays(alice@okbook.inf.ed.ac.uk, client). 
 
 plays(bob@okbook.inf.ed.ac.uk, shop).
 
-knows(http://okbook.inf.ed.ac.uk:8188/okbook/im/bobNode.js).
+knows(http://okbook.inf.ed.ac.uk:8188/okbook/im/aliceNode.js).
 
 iid(123456).

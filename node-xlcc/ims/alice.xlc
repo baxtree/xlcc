@@ -5,7 +5,8 @@ a(client(AA, BB), C)::
 	buy(AA, BB) => a(shop, S) <- payby(AA) then
 	display(R) <- receipt(R) <= a(shop, S) then
 	null <- display(R) then
-	a(client(AA), C).
+	a(client(AA), C) niob
+	null <- display(AA).
 	
 a(shop, S)::
 	buy(PC, CC) <= a(client(_), C) then
@@ -13,9 +14,9 @@ a(shop, S)::
 
 a(client(book, card), C).	
 
-plays(baxtree@jabber.org, client). 
+plays(alice@okbook.inf.ed.ac.uk, client). 
 
-plays(baxtree2@jabber.org, shop).
+plays(bob@okbook.inf.ed.ac.uk, shop).
 
 knows(http://okbook.inf.ed.ac.uk:8188/okbook/im/aliceNode.js).
 
