@@ -920,6 +920,8 @@
 	'\)'
 	'\['
 	'\]'
+	'\{'
+	'\}'
 	'=>'
 	'<='
 	'->'
@@ -995,6 +997,7 @@ Def:	Interaction												  /~ [* %% = %1; *] ~/
 		| Def THEN Def                                            [* %% = createNode(NODE_OP, OP_THEN, %1, %3); *]
 		| Def OR Def                                              [* %% = createNode(NODE_OP, OP_OR, %1, %3); *]
 		| Def NIOB Def											  [* %% = createNode(NODE_OP, OP_NIOB, %1, %3); *]
+		| '{' Def '}'											  [* %% = %2; *]
 /~		| Def PAR Def                                             [* %% = createNode(NODE_OP, OP_PAR, %1, %3); *] ~/
 		;
 
