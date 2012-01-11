@@ -1,13 +1,11 @@
-a(client(PC), D)::
-	buy(PC, CC) => a(shop, S) <- payby(CC) && lookup(S).
-	
 a(client(AA, BB), C)::
-	buy(AA, BB) => a(shop, S) <- payby(AA) then
-	display(R) <- receipt(R) <= a(shop, S) then
-	null <- display(R) then
-	a(client(AA), C).
+		null <- display(AA) then
+        null <- display(AA) then
+        null <- display(AA) then
+        null <- display(AA) then
+		null <- display(AA).
 	
-a(shop, S)::
+a(shop, S)::	
 	buy(PC, CC) <= a(client(_), C) then
 	receipt(R) => a(client(_), C) <- enough_credit(CC, PC) && complete_order(PC, CC, R).
 
@@ -19,4 +17,4 @@ plays(bob@okbook.inf.ed.ac.uk, shop).
 
 knows(http://okbook.inf.ed.ac.uk:8188/okbook/im/aliceNode.js).
 
-iid(123456).
+iid(abcdef).

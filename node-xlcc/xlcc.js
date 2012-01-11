@@ -29,11 +29,13 @@
 	var xmpp_resource = undefined;
 	var lastest_offline_msg = undefined;
 	var niob_counter = undefined;
-	
 	var emitter = new events.EventEmitter;
 	emitter.removeAllListeners("okcs loaded");
 	emitter.removeAllListeners("gotMessageFromXMPPServer");
 	emitter.on("gotMessageFromXMPPServer", onMessageArrival);
+	
+	var test_begin = undefined;
+	var test_end = undefined;
 	
 	var NODE_OP			= 1;
 	var NODE_VAR 		= 2;
@@ -173,17 +175,18 @@
 
 
 /*	commented out due to the do-not-blocking-the-event-loop requirement by node.js
-
+*/
 	function buildVariableList(variable_list, loop_counter, callback){
 		if(variable_list.length != 0){
-			process.stdout.write("Please assign a new value to variable '" + variable_list[loop_counter] + "':");
 			process.stdin.resume();
-			process.stdin.setEncoding('utf8');
+			process.stdout.write("Please assign a new value to variable '" + variable_list[loop_counter] + "':");
+			process.stdin.setEncoding("utf8");
 			
-			process.stdin.on("data", function (fvalue) {
+			process.stdin.once("data", function (fvalue) {
+				fvalue = fvalue.toString().trim();
 				setValue(variable_list[loop_counter], fvalue);
 			});
-			process.stdin.on('end', function () {
+			process.stdin.on("end", function () {
 				loop_counter++;
 				if(loop_counter == variable_list.length){
 					callback();
@@ -194,7 +197,7 @@
 			});
 		}
 	}
-*/
+
 	
 /*	commented out due to the do-not-blocking-the-event-loop requirement by node.js
 
@@ -211,14 +214,15 @@
 */
 	
 /*  commented out due to the do-not-blocking-the-event-loop requirement by node.js
-
-	function readValue(factors, callback1){
-		var variable_list = buildVariableList;
-		buildVariableList(variable_list, function(){
+*/
+	function readValueAsync(factors, callback1){
+		var variable_list = prepareVariableList(factors);
+		buildVariableList(variable_list, 0, function(){
+			process.exit();
 			callback1();		
 		});
 	}
-*/
+
 
 	function readValue(factors){
 		if(factors.length != 0){
@@ -237,6 +241,7 @@
 			}
 		}
 	}
+
 	
 	function serialiseValue(factors){
 		var content = "";
@@ -276,6 +281,7 @@
 		"setValue" : setValue, 
 		"getValue" : getValue,
 		"readValue" : readValue,	  // commented out due to the do-not-blocking-the-event-loop requirement by node.js
+		"readValueAsync" : readValueAsync,
 		"setUndefinedList" : setUndefinedList,
 		"getUndefinedList" : getUndefinedList, 		
 		"print" : print,
@@ -428,6 +434,7 @@
 	}
 	
 	function initialize(clauses, builtIns){
+		test_begin = (new Date()).getTime();
 		init = new Array();
 		okcs = new Array();
 		niob_counter = 1;
@@ -563,20 +570,27 @@
 	}
 	
 	function executeNextThenOrOrBranch(solved){
+		sys.puts("here: " + emitter.listeners("nextThenDEF").length);
+//		sys.puts("next then node: " + nextThenNode);
 		if(solved){
+//			sys.debug("next then def: " + emitter.listeners("nextThenDEF"));
 			if(emitter.listeners("nextThenDEF") != undefined && emitter.listeners("nextThenDEF").length != 0){
-	//			sys.debug("nextThenDEF is not empty! --- " + emitter.listeners("nextThenDEF").length);
+				sys.debug("nextThenDEF is not empty! --- " + emitter.listeners("nextThenDEF").length);
 				emitter.emit("nextThenDEF", nextThenNode, "nextThenDEF");
 			}
 			else{
 				if(niob_counter == 0){
 					sys.debug("Interaction finished successfully!");
+					test_end = (new Date()).getTime();
+					sys.debug("total running time: " + (test_end - test_begin) + " ms");
 					process.exit(0);
 				}
 				else{
 					niob_counter--;
 					if(niob_counter == 0){
 						sys.debug("Interaction finished successfully!");
+						test_end = (new Date()).getTime();
+						sys.debug("total running time: " + (test_end - test_begin) + " ms");
 						process.exit(0);	
 					}
 				}
@@ -679,6 +693,23 @@
 						var roleIdNode = execute(node.children[1]);
 //						sys.debug("role parse: " + JSON.stringify(execute(node.children[0])));
 						var temp = eval("[(" + execute(node.children[0]) + ")]");
+
+/* read values from user input asynchronisely.
+						readValueAsync(temp, function(){
+							var roleType = temp[0];
+							var roleName = roleType.name;
+							for(var i = 0; i < init.length; i++){
+	//							sys.debug(roleName.toString().toLowerCase() + " : " + init[i].role.toString().toLowerCase());
+								if(roleName.toString().toLowerCase() == init[i].role.toString().toLowerCase()){
+									setValue(roleIdNode, init[i].jid.toString());
+	//								sys.debug(roleIdNode + " " + init[i].jid.toString());
+									var jid = init[i].jid.toString();
+									ret = jid; 
+								}
+							}
+							sys.debug("after prompt");
+						});
+*/
 						readValue(temp);
 						var roleType = temp[0];
 						var roleName = roleType.name;
@@ -693,7 +724,7 @@
 						}
 						//possibly read in values inside temp here.
 //						sys.debug("after prompt");
-						break;
+   						break;
 					case OP_KNOWS:
 						if(node.children[0])
 							okcs.push(node.children[0].toString());
@@ -731,8 +762,17 @@
 						var constraintName = node.children[0];
 //						sys.debug(execute(node.children[1]));
 				//		sys.debug(eval("JSON.parse(\"" + execute(node.children[1]) + "\");"));
-						ret = eval(constraintName + "_okc_hook" + "(eval(\'([\' + \'" + execute(node.children[1]) + "\' + \'])\'), peerHelper, sys);"); //according to "Conventions over configurations"
-						if(ret == null || ret == undefined)
+
+/*  read value from user input asynchronisely.
+						eval(constraintName + "_okc_hook" + "(eval(\'([\' + \'" + execute(node.children[1]) + "\' + \'])\'), peerHelper, function(satisfied){" +
+						"	ret = satisfied;" +
+						"	if(ret == null || ret == undefined || ret == false)" +
+						"		throw invalidOKCException(funcName);" +
+						"})"); //according to "Conventions over configurations"
+*/
+
+						ret = eval(constraintName + "_okc_hook" + "(eval(\'([\' + \'" + execute(node.children[1]) + "\' + \'])\'), peerHelper, sys)"); //according to "Conventions over configurations"
+						if(ret == null || ret == undefined || ret == false)
 							throw invalidOKCException(funcName);
 						break;
 					case OP_NEGATE:
@@ -779,7 +819,7 @@
 						ret = true;
 						break;
 					case OP_THEN:
-//						sys.debug("hit 'then'");
+						sys.debug("hit 'then'");
 						emitter.removeAllListeners("nextThenDEF");
 //						sys.debug("after remove we got : " + emitter.listeners("nextThenDEF"));
 						nextThenNode = node.children[1];
@@ -802,7 +842,7 @@
 					case OP_NIOB:
 						niob_counter++;
 //						sys.debug("niob counter: " + niob_counter);
-//						sys.debug("hit 'niob'");
+						sys.debug("hit 'niob'");
 						execute(node.children[0]);
 						execute(node.children[1]);
 						break;
@@ -819,6 +859,7 @@
 						var message = execute(msgNode);
 						var recepientJID = execute(roleNode);
 						if(node.children[2]){
+//							sys.debug(sys.inspect(node.children[2]));
 							solved = execute(node.children[2]);
 //							sys.debug("solved : " + solved);
 							if(solved){
@@ -853,7 +894,9 @@
 //						sys.debug("return message : " + ret);
 						break;
 					case OP_NO_MSG:
+						sys.debug("hit 'no msg'");
 						ret = execute(node.children[0]);
+						sys.debug("ret:" + ret);
 						executeNextThenOrOrBranch(ret);
 						break;						
 				}
