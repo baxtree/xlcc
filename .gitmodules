@@ -1,0 +1,11 @@
+[submodule "ltx"]
+	path = lib/ltx
+	url = http://github.com/astro/ltx.git
+
+[submodule "node-expat"]
+	path = lib/node-expat
+	url = git://github.com/astro/node-expat.git
+
+[submodule "node-xmpp"]
+	path = lib/node-xmpp
+	url = git://github.com/astro/node-xmpp.git
