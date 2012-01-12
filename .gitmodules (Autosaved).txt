@@ -10,6 +10,4 @@
 	path = lib/node-xmpp
 	url = git://github.com/astro/node-xmpp.git
 
-[submodule "xmppjs"]
-	path = lib/xmppjs
-	url = https://github.com/mwild1/xmppjs.git
+
