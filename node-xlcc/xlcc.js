@@ -80,15 +80,11 @@
 		process.stdin.resume();
 		process.stdin.removeAllListeners();
 		process.stdin.setEncoding("utf8");
-		sys.debug("a");
 		process.stdin.on("data", function (chunk) {
-			sys.debug("b"); 
 			stdIn.start = chunk;
 			process.stdout.write("You just inputed : " + chunk);
 			process.stdin.resume(); });
-		sys.debug("c");
 //		while(stdIn.start==""){};
-		sys.debug("d");
 		process.stdin.pause();
 		var data = stdIn.start;
 		stdIn.start = "";
@@ -570,7 +566,7 @@
 	}
 	
 	function executeNextThenOrOrBranch(solved){
-		sys.puts("here: " + emitter.listeners("nextThenDEF").length);
+//		sys.puts("here: " + emitter.listeners("nextThenDEF").length);
 //		sys.puts("next then node: " + nextThenNode);
 		if(solved){
 //			sys.debug("next then def: " + emitter.listeners("nextThenDEF"));
@@ -2595,7 +2591,7 @@ switch( act )
 		}
 	}
 	else {
-		console.log("Usage: node node-xlcc.js <IM_NAME.xlc> <JID> <PASSWORD>");
+		console.log("Usage: node xlcc.js <IM_NAME.xlc> <JID> <PASSWORD>");
 		process.exit(1);
 	}
 

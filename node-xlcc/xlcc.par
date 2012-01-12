@@ -1090,7 +1090,7 @@ Message:	Constant '(' Terms ')'                              [* %% = createNode(
 		}
 	}
 	else {
-		console.log("Usage: node node-xlcc.js <IM_NAME.xlc> <JID> <PASSWORD>");
+		console.log("Usage: node xlcc.js <IM_NAME.xlc> <JID> <PASSWORD>");
 		process.exit(1);
 	}
 *]					
