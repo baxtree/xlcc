@@ -304,22 +304,34 @@
 		niob_counter = undefined;
 	}
 	
-	function isIdenticalRole(tnode1, tnode2){ //TODO need testing
+	function isIdenticalRole(tnode1, tnode2, recursion_counter){ //TODO need testing
+//		sys.debug(recursion_counter + " : "+ JSON.stringify(tnode1) + " " + JSON.stringify(tnode2));
 		if(typeof(tnode1) == "string" && typeof(tnode2) == "string"){
-			return true;	
+			if(recursion_counter < 4){
+				if(tnode1 == tnode2){
+					return true;
+				}
+				else{
+					return false;
+				}
+			}
+			else{
+				return true;
+			}	
 		}
 		else if(typeof(tnode1) == "string" && typeof(tnode2) != "string" || typeof(tnode1) != "string" && typeof(tnode2) == "string"){
 			return false;
 		}
 		else{
+			recursion_counter++;
 			if((tnode1.type == 1 && tnode1.type.toString() == tnode2.type.toString() && tnode1.value.toString() == tnode2.value.toString())
 			|| (tnode1.type != 1 && tnode1.type.toString() == tnode2.type.toString())){
 				if(tnode1.children.length == 0 && tnode2.children.length == 0){
-					return true;
+						return true;
 				}
 				else if(tnode1.children.length == tnode2.children.length){
 					for(var i = 0; i < tnode1.children.length; i++){
-						if(isIdenticalRole(tnode1.children[i], tnode2.children[i])){
+						if(isIdenticalRole(tnode1.children[i], tnode2.children[i], recursion_counter)){
 							continue;
 						}
 						else{
@@ -340,6 +352,7 @@
 			}
 		}
 	}
+
 	
 	function updateVariableValueInNode(src_role_head, dest_role_head){
 		if(typeof(src_role_head) == "string" && typeof(dest_role_head) == "string"){
@@ -360,7 +373,7 @@
 	function getRoleBodyByRoleHead(role_head){
 		var role_body = null;
 		for(var i = 0; i < role_heads.length; i++){
-			if(isIdenticalRole(role_head, role_heads[i])){
+			if(isIdenticalRole(role_head, role_heads[i], 0)){
 				role_body = role_bodies[i];
 				break;
 			}
@@ -375,11 +388,12 @@
 	}
 	
 	function getRoleBodyByRoleHeadAfterRoleChanging(role_head){
+//		sys.debug("role_head " + JSON.stringify(role_head));
 		var role_body = null;
 //		sys.debug("number of pairs of heads and bodies: " + role_heads.length);
 		for(var i = 0; i < role_heads.length; i++){
 //			sys.debug(JSON.stringify(role_head) + "================" + JSON.stringify(role_heads[i]));
-			if(isIdenticalRole(role_head, role_heads[i])){
+			if(isIdenticalRole(role_head, role_heads[i], 0)){
 //				sys.debug("find identical roles");
 				updateVariableValueInNode(role_head, role_heads[i]);
 				role_body = role_bodies[i];

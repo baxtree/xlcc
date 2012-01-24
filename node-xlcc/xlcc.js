@@ -303,8 +303,13 @@
 	}
 	
 	function isIdenticalRole(tnode1, tnode2){ //TODO need testing
+		sys.debug("tnode1 " + JSON.stringify(tnode1));
 		if(typeof(tnode1) == "string" && typeof(tnode2) == "string"){
-			return true;	
+			sys.debug(tnode1 + " " + tnode2 + ": both are string");
+			if(tnode1 == tnode2)
+				return true;
+			else
+				return false;
 		}
 		else if(typeof(tnode1) == "string" && typeof(tnode2) != "string" || typeof(tnode1) != "string" && typeof(tnode2) == "string"){
 			return false;
@@ -321,19 +326,19 @@
 							continue;
 						}
 						else{
-//							sys.debug("detect false here");
+							// sys.debug("detect false here");
 							return false;
 						}
 					}
 					return true;
 				}
 				else{
-//					sys.debug("different children lengths");
+					// sys.debug("different children lengths");
 					return false;
 				}
 			}
 			else{
-//				sys.debug("different types or values");
+				// sys.debug("different types or values");
 				return false;
 			}
 		}
@@ -373,6 +378,7 @@
 	}
 	
 	function getRoleBodyByRoleHeadAfterRoleChanging(role_head){
+//		sys.debug("role_head " + JSON.stringify(role_head));
 		var role_body = null;
 //		sys.debug("number of pairs of heads and bodies: " + role_heads.length);
 		for(var i = 0; i < role_heads.length; i++){
