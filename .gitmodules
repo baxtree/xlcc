@@ -13,3 +13,7 @@
 [submodule "xmppjs"]
 	path = lib/xmppjs
 	url = https://github.com/mwild1/xmppjs.git
+
+[submodule "JSCC-NODE"]
+	path = lib/JSCC-NODE
+	url = https://github.com/badlee/JSCC-NODE.git

@@ -72,7 +72,9 @@
 	var OP_IID			= 24;
 	var OP_CLAUSE		= 25;
 	var OP_NIOB			= 26;
-	
+
+/*  previous user input reader
+
 	process.stdin.resume();
 	read_string = function(){
 		var stdIn = {
@@ -94,6 +96,18 @@
 		return data;
 	};
 	process.stdin.pause();
+*/
+	
+	var read_string_exec = false, read_string_node = false ;
+  	
+	var read_string = function(fn){
+		process.stdin.resume();
+		process.stdin.setEncoding('utf8');
+		process.stdin.on('data', function (chunk) {
+		 	fn(chunk);
+		 	process.stdin.pause();
+		});
+	};
 	
 	function Node(){
 		var type;
@@ -226,11 +240,13 @@
 		if(factors.length != 0){
 			for(var i = 0; i < factors.length; i++){
 				if(factors[i].name && factors[i].name.charAt(0) === factors[i].name.charAt(0).toUpperCase()){
+					reading_string_exec = true;
 					if(!factors[i].value || factors[i].value == undefined || factors[i].value == "undefined" ){
 						sys.debug("Please assign a new value to variable '" + factors[i].name + "(" + factors[i].value + ")':");
-						var fvalue = read_string();
-						factors[i].value = fvalue;
-						setValue(factors[i].name, fvalue);
+//						var fvalue = read_string();
+						read_string(function(val){reading_string_exec = false; factors[i].value = val; setValue(factors[i].name, val);});
+//						factors[i].value = fvalue;
+//						setValue(factors[i].name, fvalue);
 					}
 				}
 				if(factors[i].params && factors[i].params.length != 0){
@@ -638,6 +654,11 @@
 	
 	
 	function execute(node, removeListeners){
+		if(read_string_exec){
+			process.nextTick(function(){try{execute(node, removeListeners);}catch(e){};},1000);
+			throw "Wait";
+		}
+	
 		if(arguments.length == 2){
 			if(removeListeners == "nextThenDEF"){
 				emitter.removeAllListeners("nextThenDEF");
