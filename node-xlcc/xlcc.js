@@ -70,7 +70,9 @@
 	var OP_IID			= 24;
 	var OP_CLAUSE		= 25;
 	var OP_NIOB			= 26;
-	
+
+/*  previous user input reader
+
 	process.stdin.resume();
 	read_string = function(){
 		var stdIn = {
@@ -92,6 +94,19 @@
 		return data;
 	};
 	process.stdin.pause();
+*/
+	
+	var read_string_exec = false, read_string_node = false;
+  	
+	var read_string = function(fn){
+		sys.debug("inside the read_string function");
+		process.stdin.resume();
+		process.stdin.setEncoding('utf8');
+		process.stdin.on('data', function (chunk) {
+		 	fn(chunk);
+		 	process.stdin.pause();
+		});
+	};
 	
 	function Node(){
 		var type;
@@ -225,10 +240,12 @@
 			for(var i = 0; i < factors.length; i++){
 				if(factors[i].name && factors[i].name.charAt(0) === factors[i].name.charAt(0).toUpperCase()){
 					if(!factors[i].value || factors[i].value == undefined || factors[i].value == "undefined" ){
+						reading_string_exec = true;
 						sys.debug("Please assign a new value to variable '" + factors[i].name + "(" + factors[i].value + ")':");
-						var fvalue = read_string();
-						factors[i].value = fvalue;
-						setValue(factors[i].name, fvalue);
+//						var fvalue = read_string();
+						read_string(function(val){if(i == factors.length && !(factors[i].params && factors[i].params.length != 0)) reading_string_exec = false; factors[i].value = val; setValue(factors[i].name, val);});
+//						factors[i].value = fvalue;
+//						setValue(factors[i].name, fvalue);
 					}
 				}
 				if(factors[i].params && factors[i].params.length != 0){
@@ -302,47 +319,55 @@
 		niob_counter = undefined;
 	}
 	
-	function isIdenticalRole(tnode1, tnode2){ //TODO need testing
-		sys.debug("tnode1 " + JSON.stringify(tnode1));
+	function isIdenticalRole(tnode1, tnode2, recursion_counter){ //TODO need testing
+//		sys.debug(recursion_counter + " : "+ JSON.stringify(tnode1) + " " + JSON.stringify(tnode2));
 		if(typeof(tnode1) == "string" && typeof(tnode2) == "string"){
-			sys.debug(tnode1 + " " + tnode2 + ": both are string");
-			if(tnode1 == tnode2)
+			if(recursion_counter < 4){
+				if(tnode1 == tnode2){
+					return true;
+				}
+				else{
+					return false;
+				}
+			}
+			else{
 				return true;
-			else
-				return false;
+			}	
 		}
 		else if(typeof(tnode1) == "string" && typeof(tnode2) != "string" || typeof(tnode1) != "string" && typeof(tnode2) == "string"){
 			return false;
 		}
 		else{
+			recursion_counter++;
 			if((tnode1.type == 1 && tnode1.type.toString() == tnode2.type.toString() && tnode1.value.toString() == tnode2.value.toString())
 			|| (tnode1.type != 1 && tnode1.type.toString() == tnode2.type.toString())){
 				if(tnode1.children.length == 0 && tnode2.children.length == 0){
-					return true;
+						return true;
 				}
 				else if(tnode1.children.length == tnode2.children.length){
 					for(var i = 0; i < tnode1.children.length; i++){
-						if(isIdenticalRole(tnode1.children[i], tnode2.children[i])){
+						if(isIdenticalRole(tnode1.children[i], tnode2.children[i], recursion_counter)){
 							continue;
 						}
 						else{
-							// sys.debug("detect false here");
+//							sys.debug("detect false here");
 							return false;
 						}
 					}
 					return true;
 				}
 				else{
-					// sys.debug("different children lengths");
+//					sys.debug("different children lengths");
 					return false;
 				}
 			}
 			else{
-				// sys.debug("different types or values");
+//				sys.debug("different types or values");
 				return false;
 			}
 		}
 	}
+
 	
 	function updateVariableValueInNode(src_role_head, dest_role_head){
 		if(typeof(src_role_head) == "string" && typeof(dest_role_head) == "string"){
@@ -363,7 +388,7 @@
 	function getRoleBodyByRoleHead(role_head){
 		var role_body = null;
 		for(var i = 0; i < role_heads.length; i++){
-			if(isIdenticalRole(role_head, role_heads[i])){
+			if(isIdenticalRole(role_head, role_heads[i], 0)){
 				role_body = role_bodies[i];
 				break;
 			}
@@ -383,7 +408,7 @@
 //		sys.debug("number of pairs of heads and bodies: " + role_heads.length);
 		for(var i = 0; i < role_heads.length; i++){
 //			sys.debug(JSON.stringify(role_head) + "================" + JSON.stringify(role_heads[i]));
-			if(isIdenticalRole(role_head, role_heads[i])){
+			if(isIdenticalRole(role_head, role_heads[i], 0)){
 //				sys.debug("find identical roles");
 				updateVariableValueInNode(role_head, role_heads[i]);
 				role_body = role_bodies[i];
@@ -628,6 +653,11 @@
 	
 	
 	function execute(node, removeListeners){
+		sys.debug("read string: " + read_string_exec);
+		if(read_string_exec){
+			process.nextTick(function(){try{execute(node, removeListeners);}catch(e){};},1000);
+			throw "Wait";
+		}	
 		if(arguments.length == 2){
 			if(removeListeners == "nextThenDEF"){
 				emitter.removeAllListeners("nextThenDEF");
