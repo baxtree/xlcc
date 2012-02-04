@@ -1,0 +1,34 @@
+{
+	"name" : "xlcc",
+	"description" : "git@github.com:baxtree/xlcc.git",
+	"version" : "xLCC interpreter on Node",
+	"author" : "Xi Bai",
+	"repository" : {
+						"type" : "git",
+						"url" : "git@github.com:baxtree/xlcc.git"
+					},
+	"bugs" : {
+				"web" : "http://github.com/baxtree/xlcc/issues"
+			 },
+	"os" : ["linux", "darwin", "freebsd"],
+	"directories" : {
+						"lib" : "./lib/"
+					},
+	"main" : "./node-xlcc/xlcc.js",
+	"engines" : {
+					"node" : ">=0.4.9"
+				},
+/*	"dependencies" : {
+					"ltx" : "http://github.com/astro/ltx.git",
+					"node-expat" : "git://github.com/astro/node-expat.git",
+					"node-xmpp" : "git://github.com/astro/node-xmpp.git",
+					"xmppjs" : "https://github.com/mwild1/xmppjs.git",
+					"JSCC-NODE" : "https://github.com/badlee/JSCC-NODE.git"
+				}, */
+	"licenses" : [
+					{
+						"type" : "MIT",
+						"url" : "http://github.com/baxtree/xlcc/blob/master/LICENSE"
+					}
+				]
+}
