@@ -90,7 +90,7 @@
 		process.stdin.pause();
 		var data = stdIn.start;
 		stdIn.start = "";
-		sys.debug("before return");
+//		sys.debug("before return");
 		return data;
 	};
 	process.stdin.pause();
@@ -99,7 +99,7 @@
 	var read_string_exec = false, read_string_node = false;
   	
 	var read_string = function(fn){
-		sys.debug("inside the read_string function");
+//		sys.debug("inside the read_string function");
 		process.stdin.resume();
 		process.stdin.setEncoding('utf8');
 		process.stdin.on('data', function (chunk) {
@@ -217,7 +217,7 @@
 			prompt.start();
 //			prompt.get(variable_list, function(err, result){
 			prompt.get(["A", "B", "C"], function(err, result){
-				sys.debug(JSON.stringify(result));
+//				sys.debug(JSON.stringify(result));
 				callback();
 			});
 		}
@@ -241,7 +241,7 @@
 				if(factors[i].name && factors[i].name.charAt(0) === factors[i].name.charAt(0).toUpperCase()){
 					if(!factors[i].value || factors[i].value == undefined || factors[i].value == "undefined" ){
 						reading_string_exec = true;
-						sys.debug("Please assign a new value to variable '" + factors[i].name + "(" + factors[i].value + ")':");
+//						sys.debug("Please assign a new value to variable '" + factors[i].name + "(" + factors[i].value + ")':");
 //						var fvalue = read_string();
 						read_string(function(val){if(i == factors.length && !(factors[i].params && factors[i].params.length != 0)) reading_string_exec = false; factors[i].value = val; setValue(factors[i].name, val);});
 //						factors[i].value = fvalue;

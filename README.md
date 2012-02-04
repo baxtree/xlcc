@@ -4,7 +4,7 @@ node-xlcc is an interpreter for xLCC on Node.
 
 #Installation
 
-[1] install GIT form http://git-scm.com/
+[1] install GIT from http://git-scm.com/
 
 [2] checkout Node.js from GitHub: git clone https://github.com/joyent/node.git
 
