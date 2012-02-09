@@ -42,6 +42,7 @@
 	var NODE_OP			= 1;
 	var NODE_VAR 		= 2;
 	var NODE_CONST		= 3;
+	var NODE_ARR		= 4;
 	
 	var OP_ENTRY		= -2;
 	var OP_NONE 		= -1;
@@ -72,6 +73,15 @@
 	var OP_IID			= 24;
 	var OP_CLAUSE		= 25;
 	var OP_NIOB			= 26;
+	var OP_BRACKET		= 27;
+	var OP_BRACKET_OR	= 28;
+	var OP_EQU			= 29;
+	var OP_NEQ			= 30;
+	var OP_GRT			= 31;
+	var OP_LOT			= 32;
+	var OP_GRE			= 33;
+	var OP_LOE			= 34;
+	var OP_ASSIGN		= 35;
 
 /*  previous user input reader
 
@@ -655,7 +665,7 @@
 	
 	
 	function execute(node, removeListeners){
-		sys.debug("read string: " + read_string_exec);
+//		sys.debug("read string: " + read_string_exec);
 		if(read_string_exec){
 			process.nextTick(function(){try{execute(node, removeListeners);}catch(e){};},1000);
 			throw "Wait";
@@ -794,6 +804,7 @@
 						break;
 					case OP_CONSTRAINT://TODO need check the Variables and which of them are inputs and wich of them are outputs (callback?).
 						var constraintName = node.children[0];
+						if(node.children[1]){
 //						sys.debug(execute(node.children[1]));
 				//		sys.debug(eval("JSON.parse(\"" + execute(node.children[1]) + "\");"));
 
@@ -805,7 +816,11 @@
 						"})"); //according to "Conventions over configurations"
 */
 
-						ret = eval(constraintName + "_okc_hook" + "(eval(\'([\' + \'" + execute(node.children[1]) + "\' + \'])\'), peerHelper, sys)"); //according to "Conventions over configurations"
+							ret = eval(constraintName + "_okc_hook" + "(eval(\'([\' + \'" + execute(node.children[1]) + "\' + \'])\'), peerHelper, sys)"); //according to "Conventions over configurations"
+						}
+						else{
+							ret = eval(constraintName + "_okc_hook" + "(eval(\'([\' + \'])\'), peerHelper);");
+						}
 						if(ret == null || ret == undefined || ret == false)
 							throw invalidOKCException(funcName);
 						break;
@@ -830,27 +845,28 @@
 						}
 						break;
 					case OP_LIST:
-						if(execute(node.children[0]) != undefined){
-							if(execute(node.children[0]).length == 0){
-								setValue(node.children[1].value.toString(), []);
-								setValue(node.children[2].value.toString(), []);
-							}
-							else if(execute(node.children[0]).length = 1){
-								setValue(node.children[1].value.toString(), execute(node.children[0])[0]);
-								setValue(node.children[2].value.toString(), []);
-							}
-							else if(execute(node.children[0]).length > 1){
-								setValue(node.children[1].value.toString(), execute(node.children[0])[0]);
-								setValue(node.children[2].value.toString(), execute(node.children[0]).slice(1));
-							}
+	//					sys.debug("hit list");
+						var list = execute(node.children[0], niob_context);
+						var listHead = execute(node.children[1], niob_context);
+						var listTail = execute(node.children[2], niob_context);
+						if(listHead != undefined && listTail != undefined && listTail.length){
+							setValue(node.children[0].value.toString(), listTail.unshift(listHead));
 						}
-						else if(execute(node.children[1]) != undefined && execute(node.children[2]) != undefined){
-							setValue(node.children[0].value.toString(), execute(node.children[1]).concat(execute(node.children[2])));
-						}
-						if(execute(node.children[1]) != undefined && execute(node.children[2]) != undefined){
-							setValue(node.children[0].value.toString(), []);
-						}
-						ret = true;
+						else if(list != undefined && list.length){
+							if(list.length == 0){
+								setValue(node.children[1].value.toString(), new Array());
+								setValue(node.children[2].value.toString(), new Array());
+							}
+							else{
+								setValue(node.children[1].value.toString(), list[0]);
+								list.shift();
+								setValue(node.children[2].value.toString(), list);
+							}
+							ret = true;
+						}	
+						else{
+							throw listDefinitionNotSupportedException();
+						}					
 						break;
 					case OP_THEN:
 						sys.debug("hit 'then'");
@@ -932,6 +948,28 @@
 						ret = execute(node.children[0]);
 						sys.debug("ret:" + ret);
 						executeNextThenOrOrBranch(ret);
+						break;
+					case OP_EQU:
+						ret = execute(node.children[0], niob_context) == execute(node.children[1], niob_context);
+						break;
+					case OP_NEQ:
+						ret = execute(node.children[0], niob_context) != execute(node.children[1], niob_context);
+						break;
+					case OP_GRT:
+						ret = execute(node.children[0], niob_context) > execute(node.children[1], niob_context);
+						break;
+					case OP_LOT:
+						ret = execute(node.children[0], niob_context) < execute(node.children[1], niob_context);
+						break;
+					case OP_GRE:
+						ret = execute(node.children[0], niob_context) >= execute(node.children[1], niob_context);
+						break;
+					case OP_LOE:
+						ret = execute(node.children[0], niob_context) <= execute(node.children[1], niob_context);
+						break;					
+					case OP_ASSIGN:
+						setValue(node.children[0].value.toString(), execute(node.children[1], niob_context));
+						ret = true;
 						break;						
 				}
 				break;
@@ -943,6 +981,9 @@
 				break;
 			case NODE_CONST:
 				ret = node.value;
+				break;
+			case NODE_ARR:
+				ret = eval(node.value);
 				break;
 		}
 		return ret;
@@ -973,21 +1014,23 @@
         ;						
 
 /~ Grammar tokens ~/
-	"HEAD"
-	"A"
-/~	"OKC" ~/
-	"OR"
-	"THEN"
-	"NIOB"
-/~  "PAR" ~/
-	"KNOWS"
-	"PLAYS"
-	"IID"
-	"NULL"
-/~	"MSG" ~/
-/~	"TEXT" ~/
-/~	"INPUT" ~/
-/~	"INITIAL" ~/
+	'head'
+	'a'
+/~	'okc' ~/
+	'or'
+	'then'
+	'niob'
+/~  'par' ~/
+	'knows'
+	'plays'
+	'iid'
+	'list'
+	'null'
+	'not'									/~ logical "NOT" ~/
+/~	'msg' ~/
+/~	'text' ~/
+/~	'input' ~/
+/~	'initiakl' ~/
 	'::'
 	','
 	'\.'
@@ -997,28 +1040,34 @@
 	'\]'
 	'\{'
 	'\}'
+	'=='
+	'!='
+	'>'
+	'<'
+	'>='
+	'=<'
 	'=>'
 	'<='
 	'->'
 	'<-'
 	'='
 	'_'
-	'\|'                             ListBar
-	"NOT"									/~ logical "NOT" ~/
+	'\|'                             
 	'([A-Z][A-Za-z0-9_]*)'	Variable
 	'(([\'\"])?[a-z][A-Za-z0-9_@\.://]*([\'\"])?)|(([\'\"])?([0-9])+([\'\"])?)'		Constant
-	'\[(.)+\]'				JSON
+	'\[[^\|]*\{[^\|]+\}[^\|]*\]'				JSONLIST
+	'\[[^\{\}><=!]*\]'								LIST 
 	;
 	
 	
 /~ associativity ~/
-< 	"NIOB"
+< 	"niob"
 	;
 	
-<	"OR"							
+<	"or"							
 	;
 
-<	"THEN"
+<	"then"
 	;
 
 
@@ -1039,10 +1088,10 @@
 
 IM:		Clause_List	BuiltIn_List						[* initialize(%1, %2); *]
 		| BuiltIn_List Clause_List						[* initialize(%2, %1); *]
-		| HEAD '(' JSON ')' '.' Clause_List 			[* initializeByHeader(%3, %6); *]
-		| Clause_List HEAD '(' JSON ')' '.'				[* initializeByHeader(%4, %1); *]
-		| HEAD '(' JSON ')' '.' Clause_List BuiltIn_List			[* initializeByHeader(%3, %6, %7); *]
-		| HEAD '(' JSON ')' '.' BuiltIn_List Clause_List 			[* initializeByHeader(%3, %7, %6); *]
+		| head '(' JSONLIST ')' '.' Clause_List 			[* initializeByHeader(%3, %6); *]
+		| Clause_List HEAD '(' JSONLIST ')' '.'				[* initializeByHeader(%4, %1); *]
+		| head '(' JSONLIST ')' '.' Clause_List BuiltIn_List			[* initializeByHeader(%3, %6, %7); *]
+		| head '(' JSONLIST ')' '.' BuiltIn_List Clause_List 			[* initializeByHeader(%3, %7, %6); *]
 		;
 
 Clause_List:	Clause									[* %% = createNode(NODE_OP, OP_CLAUSE, %1); *]
@@ -1057,40 +1106,48 @@ BuiltIn_List: 	BuiltIn									[* %% = createNode(NODE_OP, OP_CLAUSE, %1); *]
 				| BuiltIn BuiltIn_List					[* %% = createNode(NODE_OP, OP_CLAUSE, %1, %2); *]
 				;
 		
-BuiltIn:	PLAYS '(' Constant ',' Constant ')'	'.'						[* %% = createNode(NODE_OP, OP_PLAYS, %3, %5); *]
-		 	| KNOWS '(' Constant ')' '.'								[* %% = createNode(NODE_OP, OP_KNOWS, %3); *] 
-		 	| IID '(' Constant ')' '.'									[* %% = createNode(NODE_OP, OP_IID, %3); *]
+BuiltIn:	plays '(' Constant ',' Constant ')'	'.'						[* %% = createNode(NODE_OP, OP_PLAYS, %3, %5); *]
+		 	| knows '(' Constant ')' '.'								[* %% = createNode(NODE_OP, OP_KNOWS, %3); *] 
+		 	| iid '(' Constant ')' '.'									[* %% = createNode(NODE_OP, OP_IID, %3); *]
 		 	;
 
-Role:	A '(' Type ',' Id ')'                           [* %% = createNode(NODE_OP, OP_ROLE, %3, %5); *]
+Role:	a '(' Type ',' Id ')'                           [* %% = createNode(NODE_OP, OP_ROLE, %3, %5); *]
 		;
 
 Type:	Term                                                [* %% = createNode(NODE_OP, OP_ROLE_TYPE, %1); *]
 		;
 	
 Def:	Interaction												  /~ [* %% = %1; *] ~/
-		| Def THEN Def                                            [* %% = createNode(NODE_OP, OP_THEN, %1, %3); *]
-		| Def OR Def                                              [* %% = createNode(NODE_OP, OP_OR, %1, %3); *]
-		| Def NIOB Def											  [* %% = createNode(NODE_OP, OP_NIOB, %1, %3); *]
+		| Def then Def                                            [* %% = createNode(NODE_OP, OP_THEN, %1, %3); *]
+		| Def or Def                                              [* %% = createNode(NODE_OP, OP_OR, %1, %3); *]
+		| Def niob Def											  [* %% = createNode(NODE_OP, OP_NIOB, %1, %3); *]
 		| '{' Def '}'											  [* %% = %2; *]
-/~		| Def PAR Def                                             [* %% = createNode(NODE_OP, OP_PAR, %1, %3); *] ~/
+/~		| Def par Def                                             [* %% = createNode(NODE_OP, OP_PAR, %1, %3); *] ~/
 		;
 
 Interaction:	Message '=>' Role                                 [* %% = createNode(NODE_OP, OP_SEND, %1, %3); *]
 				| Message '=>' Role '<-' Constraint               [* %% = createNode(NODE_OP, OP_SEND, %1, %3, %5); *]
 				| Message '<=' Role                               [* %% = createNode(NODE_OP, OP_RECEIVE, %1, %3); *]
 				| Constraint '<-' Message '<=' Role               [* %% = createNode(NODE_OP, OP_RECEIVE, %3, %5, %1); *]
-				| NULL '<-' Constraint                            [* %% = createNode(NODE_OP, OP_NO_MSG, %3); *]   /~ not in the original BNF declaration on the openk website ~/
+				| null '<-' Constraint                            [* %% = createNode(NODE_OP, OP_NO_MSG, %3); *]   /~ not in the original BNF declaration on the openk website ~/
 				| Role											  [* %% = createNode(NODE_OP, OP_ROLE_CHANGE, %1 );*]
 	      		| Role '<-' Constraint							  [* %% = createNode(NODE_OP, OP_ROLE_CHANGE, %1, %3) *]			
 				;
 
 Constraint:	Constant  											[* %% = true; *]
+			| Constant '(' ')'                            		[* %% = createNode(NODE_OP, OP_CONSTRAINT, %1); *]
 			| Constant '(' Terms ')'                            [* %% = createNode(NODE_OP, OP_CONSTRAINT, %1, %3); *]
-			| NOT '(' Constraint ')'                            [* %% = createNode(NODE_OP, OP_NEGATE, %3); *]
+			| not '(' Constraint ')'                            [* %% = createNode(NODE_OP, OP_NEGATE, %3); *]
+			| Id '==' Id										[* %% = createNode(NODE_OP, OP_EQU, %1, %3); *]
+			| Id '!=' Id										[* %% = createNode(NODE_OP, OP_NEQ, %1, %3); *]
+			| Id '>' Id											[* %% = createNode(NODE_OP, OP_GRT, %1, %3); *]
+			| Id '<' Id											[* %% = createNode(NODE_OP, OP_LOT, %1, %3); *]
+			| Id '>=' Id										[* %% = createNode(NODE_OP, OP_GRE, %1, %3); *]
+			| Id '=<' Id										[* %% = createNode(NODE_OP, OP_LOE, %1, %3); *]
+			| Variable '=' Id									[* %% = createNode(NODE_OP, OP_ASSIGN, %1, %3); *]
 			| Constraint '&&' Constraint                        [* %% = createNode(NODE_OP, OP_LOGAND, %1, %3); *]
 			| Constraint '\|\|' Constraint                      [* %% = createNode(NODE_OP, OP_LOGOR, %1, %3); *] 
-			| Variable '=' '\[' Variable ListBar Variable '\]'	[* %% = createNode(NODE_OP, OP_LIST, %1, %4, %6); *] 
+			| list '(' Id ',' Id ',' Id ')' 					[* %% = createNode(NODE_OP, OP_LIST, %3, %5, %7); *]
 			;
 	
 Terms:	Terms ',' Term                                          [* %% = createNode(NODE_OP, OP_TERMS, %1, %3); *] 
@@ -1099,12 +1156,14 @@ Terms:	Terms ',' Term                                          [* %% = createNod
 		
 Term:	Constant                                                [* %% = createNode(NODE_OP, OP_FACTOR, %1); *] 
 		| Variable                                              [* %% = createNode(NODE_OP, OP_FACTOR, %1); *] 
+		| LIST					 								[* %% = createNode(NODE_OP, OP_FACTOR, %1); *] 
 		| Constant '(' Terms ')'                                [* %% = createNode(NODE_OP, OP_FACTOR, %1, %3)*]
 		| '_'
 		;
 
 Id:	Constant                                                    [* %% = createNode(NODE_CONST, %1); *] 
-	| Variable                                                  [* %% = createNode(NODE_VAR, %1); *]  
+	| Variable                                                  [* %% = createNode(NODE_VAR, %1); *] 
+	| LIST														[* %% = createNode(NODE_ARR, %1); *] 
 	;
 
 Message:	Constant '(' Terms ')'                              [* %% = createNode(NODE_OP, OP_MESSAGE, %1, %3); *]
