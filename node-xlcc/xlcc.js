@@ -718,7 +718,7 @@
 						break;
 					case OP_ROLE_CHANGE:
 						if(node.children[1]){
-							if(execute(node.children[1]) && node.children[1]){
+							if(execute(node.children[1])){
 								sys.debug("Role change now!");
 								execute(getRoleBodyByRoleHeadAfterRoleChanging(node.children[0]));
 							}
