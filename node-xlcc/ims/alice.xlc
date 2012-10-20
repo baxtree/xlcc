@@ -13,10 +13,10 @@ a(shop, S)::
 
 a(client(book, card), C).	
 
-plays(alice@okbook.inf.ed.ac.uk, client). 
+plays('alice@okbook.inf.ed.ac.uk', client). 
 
-plays(bob@okbook.inf.ed.ac.uk, shop).
+plays('bob@okbook.inf.ed.ac.uk', shop).
 
-knows(http://okbook.inf.ed.ac.uk:8188/okbook/im/aliceNode.js).
+knows('http://okbook.inf.ed.ac.uk/im/aliceNode.js').
 
-iid(123456).
+iid('123456').

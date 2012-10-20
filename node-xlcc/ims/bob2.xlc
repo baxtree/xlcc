@@ -5,10 +5,10 @@ a(shop, S)::
 
 a(shop, S).	
 
-plays(alice@okbook.inf.ed.ac.uk, client). 
+plays('alice@okbook.inf.ed.ac.uk', client). 
 
-plays(bob@okbook.inf.ed.ac.uk, shop).  
+plays('bob@okbook.inf.ed.ac.uk', shop).  
 
-knows(http://okbook.inf.ed.ac.uk:8188/okbook/im/bobNode.js).
+knows('http://okbook.inf.ed.ac.uk/im/bobNode.js').
 
-iid(abcdef).
+iid('abcdef').

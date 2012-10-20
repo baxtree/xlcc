@@ -335,6 +335,13 @@
 		niob_counter = undefined;
 	}
 	
+	function removeQuotes(str){
+		if(str.charAt(0) == '\'' || str.charAt(0) == '\"')
+			return str.substring(1, str.length - 1);
+		else
+			return str;
+	}
+	
 	function isIdenticalRole(tnode1, tnode2, recursion_counter){ //TODO need testing
 //		sys.debug(recursion_counter + " : "+ JSON.stringify(tnode1) + " " + JSON.stringify(tnode2));
 		if(typeof(tnode1) == "string" && typeof(tnode2) == "string"){
@@ -775,19 +782,19 @@
    						break;
 					case OP_KNOWS:
 						if(node.children[0])
-							okcs.push(node.children[0].toString());
+							okcs.push(removeQuotes(node.children[0].toString()));
 						break;
 					case OP_PLAYS:
 						if(node.children[0] && node.children[1]){
 							var info = {};
-							info["jid"] = node.children[0].toString();
+							info["jid"] = removeQuotes(node.children[0].toString());
 							info["role"] = node.children[1].toString();
 							init.push(info);	
 						}
 						break;
 					case OP_IID:
 						if(node.children[0])
-							xmpp_resource = node.children[0].toString();
+							xmpp_resource = removeQuotes(node.children[0].toString());
 						break;
 					case OP_ROLE_TYPE:
 						var ret = execute(node.children[0]);
@@ -803,8 +810,20 @@
 					case OP_FACTOR:
 						if(node.children[1])
 							ret = '{ "name" : "' + node.children[0] + '", "value" : "' + getValue(node.children[0]) + '", "params" : [' + execute(node.children[1]) + ']}';
-						else
-							ret = '{ "name" : "' + node.children[0] + '", "value" : "' + getValue(node.children[0]) + '", "params" : []}';
+						else{
+							if(node.children[0].toString().charAt(0) == "[" && node.children[0].toString().charAt(node.children[0].toString().length - 1) == "]"){
+								ret = '{ "name" : "list", "value" : [' + eval(node.children[0]).toString() + '], "params" : []}';
+							}
+							else if(node.children[0].toString().charAt(0) == "'" && node.children[0].toString().charAt(node.children[0].toString().length - 1) == "'"){
+								ret = '{ "name" : "string", "value" : "' + removeQuotes(node.children[0].toString()) + '", "params" : []}';
+							}
+							else if(node.children[0].toString().charAt(0) == "\"" && node.children[0].toString().charAt(node.children[0].toString().length - 1) == "\""){
+								ret = '{ "name" : "string", "value" : "' + removeQuotes(node.children[0].toString()) + '", "params" : []}';
+							}
+							else{
+								ret = '{ "name" : "' + node.children[0] + '", "value" : "' + getValue(node.children[0]) + '", "params" : []}';
+							}
+						}
 						break;
 					case OP_CONSTRAINT://TODO need check the Variables and which of them are inputs and wich of them are outputs (callback?).
 						var constraintName = node.children[0];
@@ -990,6 +1009,9 @@
 			case NODE_ARR:
 				ret = eval(node.value);
 				break;
+			case NODE_STR:
+				ret = removeQuotes(node.value.toString());
+				break;
 		}
 		return ret;
 	}
@@ -1059,9 +1081,10 @@
 	'_'
 	'\|'                             
 	'([A-Z][A-Za-z0-9_]*)'	Variable
-	'(([\'\"])?[a-z][A-Za-z0-9_@\.://]*([\'\"])?)|(([\'\"])?([0-9])+([\'\"])?)'		Constant
-	'\[[^\|]*\{[^\|]+\}[^\|]*\]'				JSONLIST
-	'\[[^\{\}><=!]*\]'								LIST 
+	'([a-z][A-Za-z0-9_@\.://]*)|(([0-9])+)'											Constant
+	'\[[^\|]*\{[^\|]+\}[^\|]*\]'													JSONLIST
+	'\[[^\{\}><=!]*\]'																LIST 
+	'(\'([^\']|\'\')*\')|(\"([^\"]|\"\")*\")'										String
 	;
 	
 	
@@ -1111,9 +1134,9 @@ BuiltIn_List: 	BuiltIn									[* %% = createNode(NODE_OP, OP_CLAUSE, %1); *]
 				| BuiltIn BuiltIn_List					[* %% = createNode(NODE_OP, OP_CLAUSE, %1, %2); *]
 				;
 		
-BuiltIn:	plays '(' Constant ',' Constant ')'	'.'						[* %% = createNode(NODE_OP, OP_PLAYS, %3, %5); *]
-		 	| knows '(' Constant ')' '.'								[* %% = createNode(NODE_OP, OP_KNOWS, %3); *] 
-		 	| iid '(' Constant ')' '.'									[* %% = createNode(NODE_OP, OP_IID, %3); *]
+BuiltIn:	plays '(' String ',' Constant ')'	'.'						[* %% = createNode(NODE_OP, OP_PLAYS, %3, %5); *]
+		 	| knows '(' String ')' '.'								[* %% = createNode(NODE_OP, OP_KNOWS, %3); *] 
+		 	| iid '(' String ')' '.'									[* %% = createNode(NODE_OP, OP_IID, %3); *]
 		 	;
 
 Role:	a '(' Type ',' Id ')'                           [* %% = createNode(NODE_OP, OP_ROLE, %3, %5); *]
@@ -1163,12 +1186,14 @@ Term:	Constant                                                [* %% = createNode
 		| Variable                                              [* %% = createNode(NODE_OP, OP_FACTOR, %1); *] 
 		| LIST					 								[* %% = createNode(NODE_OP, OP_FACTOR, %1); *] 
 		| Constant '(' Terms ')'                                [* %% = createNode(NODE_OP, OP_FACTOR, %1, %3)*]
+		| String												[* %% = createNode(NODE_OP, OP_FACTOR, %1); *]
 		| '_'
 		;
 
 Id:	Constant                                                    [* %% = createNode(NODE_CONST, %1); *] 
 	| Variable                                                  [* %% = createNode(NODE_VAR, %1); *] 
 	| LIST														[* %% = createNode(NODE_ARR, %1); *] 
+	| String													[* %% = createNode(NODE_STR, %1); *]
 	;
 
 Message:	Constant '(' Terms ')'                              [* %% = createNode(NODE_OP, OP_MESSAGE, %1, %3); *]
