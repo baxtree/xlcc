@@ -743,41 +743,59 @@
 						}
 						break;
 					case OP_ROLE:
-						var roleIdNode = execute(node.children[1]);
-//						sys.debug("role parse: " + JSON.stringify(execute(node.children[0])));
-						var temp = eval("[(" + execute(node.children[0]) + ")]");
+						var roleID = node.children[1].value.toString();
+						if(getValue(roleID) != null && getValue(roleID) != undefined){
+							ret = getValue(roleID);
+							break;
+						}
+						else{
+							sys.debug("role parse: " + JSON.stringify(execute(node.children[0])));
+							var temp = eval("[(" + execute(node.children[0]) + ")]");
 
 /* read values from user input asynchronisely.
-						readValueAsync(temp, function(){
+							readValueAsync(temp, function(){
+								var roleType = temp[0];
+								var roleName = roleType.name;
+								for(var i = 0; i < init.length; i++){
+	//								sys.debug(roleName.toString().toLowerCase() + " : " + init[i].role.toString().toLowerCase());
+									if(roleName.toString().toLowerCase() == init[i].role.toString().toLowerCase()){
+										setValue(roleID, init[i].jid.toString());
+	//									sys.debug(roleID + " " + init[i].jid.toString());
+										var jid = init[i].jid.toString();
+										ret = jid; 
+									}
+								}
+								sys.debug("after prompt");
+							});
+*/
+							readValue(temp);
 							var roleType = temp[0];
 							var roleName = roleType.name;
+							var roleFoundInInit = true;
+							var roleJID = "";
 							for(var i = 0; i < init.length; i++){
-	//							sys.debug(roleName.toString().toLowerCase() + " : " + init[i].role.toString().toLowerCase());
+								sys.debug(roleName.toString().toLowerCase() + " : " + init[i].role.toString().toLowerCase());
 								if(roleName.toString().toLowerCase() == init[i].role.toString().toLowerCase()){
-									setValue(roleIdNode, init[i].jid.toString());
-	//								sys.debug(roleIdNode + " " + init[i].jid.toString());
-									var jid = init[i].jid.toString();
-									ret = jid; 
+									setValue(roleID, init[i].jid.toString());
+									sys.debug(roleID + " " + init[i].jid.toString());
+									roleJID = init[i].jid.toString();
+									roleFoundInInit = true;
+									break;
 								}
+								roleFoundInInit = false;
 							}
-							sys.debug("after prompt");
-						});
-*/
-						readValue(temp);
-						var roleType = temp[0];
-						var roleName = roleType.name;
-						for(var i = 0; i < init.length; i++){
-//							sys.debug(roleName.toString().toLowerCase() + " : " + init[i].role.toString().toLowerCase());
-							if(roleName.toString().toLowerCase() == init[i].role.toString().toLowerCase()){
-								setValue(roleIdNode, init[i].jid.toString());
-//								sys.debug(roleIdNode + " " + init[i].jid.toString());
-								var jid = init[i].jid.toString();
-								ret = jid; 
+							//possibly read in values inside temp here.
+							if(roleFoundInInit){
+								ret = roleJID; 
+								break;
 							}
-						}
-						//possibly read in values inside temp here.
-//						sys.debug("after prompt");
-   						break;
+							else{
+//								sys.debug(roleID + " : " + getValue(roleID));
+								throw CommunicationIDNotFoundException(roleName);
+							}
+//							sys.debug("after prompt");
+   							
+   						}
 					case OP_KNOWS:
 						if(node.children[0])
 							okcs.push(removeQuotes(node.children[0].toString()));
@@ -1026,6 +1044,16 @@
 	
 	function constraitsSolvingFailedException(){
 		sys.debug("ERROR: Constraints can not be solved. Interaction terminated without completion!");
+		process.exit(1);
+	}
+
+	function listDefinitionNotSupportedException(){
+		sys.debug("This usage of the constraint list is not supported or correct.");
+		process.exit(1);
+	}
+	
+	function CommunicationIDNotFoundException(roleName){
+		sys.debug("Cannot find the communication ID (Jabber ID) of the message receiver with the role name: " + roleName);
 		process.exit(1);
 	}
 
