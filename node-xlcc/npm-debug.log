@@ -1,0 +1,220 @@
+info it worked if it ends with ok
+verbose cli [ 'node',
+verbose cli   '/Users/baxtree/Downloads/installations/nvm/v0.4.9/bin/npm',
+verbose cli   'install',
+verbose cli   'node-stringprep' ]
+info using npm@1.0.106
+info using node@v0.4.9
+verbose config file /Users/baxtree/.npmrc
+verbose config file /Users/baxtree/Downloads/installations/nvm/v0.4.9/etc/npmrc
+verbose config file /Users/baxtree/Downloads/installations/nvm/v0.4.9/lib/node_modules/npm/npmrc
+verbose into /Users/baxtree/Documents/stsworkspace/xlcc [ 'node-stringprep' ]
+verbose cache add node-stringprep
+verbose cache add [ 'node-stringprep', null ]
+silly cache add: name, spec, args [ undefined,
+silly cache add: name, spec, args   'node-stringprep',
+silly cache add: name, spec, args   [ 'node-stringprep', null ] ]
+verbose parsed url { pathname: 'node-stringprep',
+verbose parsed url   href: 'node-stringprep' }
+info addNamed [ 'node-stringprep', '' ]
+verbose addNamed [ null, '' ]
+verbose GET node-stringprep
+verbose raw, before any munging node-stringprep
+verbose url resolving [ 'https://registry.npmjs.org/', './node-stringprep' ]
+verbose url resolved https://registry.npmjs.org/node-stringprep
+verbose etag "3ZZSU3NNOYC921YAC7GTBFRCE"
+silly get cb [ 304,
+silly get cb   { server: 'CouchDB/1.2.0 (Erlang OTP/R15B)',
+silly get cb     etag: '"3ZZSU3NNOYC921YAC7GTBFRCE"',
+silly get cb     date: 'Sun, 21 Oct 2012 18:17:18 GMT',
+silly get cb     'content-length': '0' } ]
+verbose etag node-stringprep from cache
+verbose GET node-stringprep/0.1.5
+verbose raw, before any munging node-stringprep/0.1.5
+verbose url resolving [ 'https://registry.npmjs.org/',
+verbose url resolving   './node-stringprep/0.1.5' ]
+verbose url resolved https://registry.npmjs.org/node-stringprep/0.1.5
+verbose etag "3ZZSU3NNOYC921YAC7GTBFRCE"
+silly get cb [ 304,
+silly get cb   { server: 'CouchDB/1.2.0 (Erlang OTP/R15B)',
+silly get cb     etag: '"3ZZSU3NNOYC921YAC7GTBFRCE"',
+silly get cb     date: 'Sun, 21 Oct 2012 18:17:19 GMT',
+silly get cb     'content-length': '0' } ]
+verbose etag node-stringprep/0.1.5 from cache
+verbose bin dist [ '0.4-ares1.7.4-ev4.4-openssl0.9.8l-v83.1.8.25-darwin-10.8.0',
+verbose bin dist   { shasum: '3221092203315993bd76ba99e93c28bca96380f9',
+verbose bin dist     tarball: 'http://registry.npmjs.org/node-stringprep/-/node-stringprep-0.1.5.tgz' } ]
+verbose has wscript [ undefined,
+verbose has wscript   { file: '/Users/baxtree/.npm/node-stringprep/0.1.5/package/package.json',
+verbose has wscript     contributors: false,
+verbose has wscript     serverjs: false,
+verbose has wscript     wscript: true } ]
+silly testEngine { name: 'node-stringprep',
+silly testEngine   version: '0.1.5',
+silly testEngine   main: './build/Release/node-stringprep.node',
+silly testEngine   description: 'ICU StringPrep profiles',
+silly testEngine   keywords: [ 'unicode', 'stringprep', 'icu' ],
+silly testEngine   dependencies: {},
+silly testEngine   devDependencies: {},
+silly testEngine   repository: 
+silly testEngine    { type: 'git',
+silly testEngine      path: 'git://github.com/astro/node-stringprep.git',
+silly testEngine      url: '' },
+silly testEngine   homepage: 'http://github.com/astro/node-stringprep',
+silly testEngine   bugs: { name: 'http://github.com/astro/node-stringprep/issues' },
+silly testEngine   author: 
+silly testEngine    { name: 'Astro',
+silly testEngine      email: 'astro@spaceboyz.net',
+silly testEngine      url: 'http://spaceboyz.net/~astro/' },
+silly testEngine   licenses: [ { type: 'MIT' } ],
+silly testEngine   engines: { node: '>=0.4' },
+silly testEngine   _id: 'node-stringprep@0.1.5',
+silly testEngine   scripts: { preinstall: 'node-waf clean || true; node-waf configure build' },
+silly testEngine   _engineSupported: true,
+silly testEngine   _npmVersion: '1.0.106',
+silly testEngine   _nodeVersion: 'v0.4.9',
+silly testEngine   _defaultsLoaded: true }
+verbose caching /Users/baxtree/.npm/node-stringprep/0.1.5/package/package.json
+verbose loadDefaults node-stringprep@0.1.5
+silly resolved [ { name: 'node-stringprep',
+silly resolved     version: '0.1.5',
+silly resolved     main: './build/Release/node-stringprep.node',
+silly resolved     description: 'ICU StringPrep profiles',
+silly resolved     keywords: [ 'unicode', 'stringprep', 'icu' ],
+silly resolved     dependencies: {},
+silly resolved     devDependencies: {},
+silly resolved     repository: 
+silly resolved      { type: 'git',
+silly resolved        path: 'git://github.com/astro/node-stringprep.git',
+silly resolved        url: '' },
+silly resolved     homepage: 'http://github.com/astro/node-stringprep',
+silly resolved     bugs: { name: 'http://github.com/astro/node-stringprep/issues' },
+silly resolved     author: 
+silly resolved      { name: 'Astro',
+silly resolved        email: 'astro@spaceboyz.net',
+silly resolved        url: 'http://spaceboyz.net/~astro/' },
+silly resolved     licenses: [ { type: 'MIT' } ],
+silly resolved     engines: { node: '>=0.4' },
+silly resolved     _id: 'node-stringprep@0.1.5',
+silly resolved     scripts: { preinstall: 'node-waf clean || true; node-waf configure build' },
+silly resolved     _engineSupported: true,
+silly resolved     _npmVersion: '1.0.106',
+silly resolved     _nodeVersion: 'v0.4.9',
+silly resolved     _defaultsLoaded: true } ]
+info into /Users/baxtree/Documents/stsworkspace/xlcc node-stringprep@0.1.5
+info installOne node-stringprep@0.1.5
+info unbuild /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/node-stringprep
+verbose from cache /Users/baxtree/.npm/node-stringprep/0.1.5/package/package.json
+verbose mkdir (expected) error ENOENT, No such file or directory '/Users/baxtree/Documents/stsworkspace/xlcc/node_modules'
+verbose mkdir (expected) error ENOENT, No such file or directory '/Users/baxtree/Documents/stsworkspace/xlcc/node_modules/___node-stringprep.npm'
+verbose mkdir done: /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/___node-stringprep.npm 755
+verbose unpack_ uid, gid [ 501, 20 ]
+verbose unpackTarget /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/node-stringprep
+silly gunzTarPerm modes [ '755', '644' ]
+silly spawning [ 'tar',
+silly spawning   [ '-zmvxpf',
+silly spawning     '/Users/baxtree/.npm/node-stringprep/0.1.5/package.tgz',
+silly spawning     '-o' ],
+silly spawning   '/Users/baxtree/Documents/stsworkspace/xlcc/node_modules/___node-stringprep.npm' ]
+silly tar err x package/.npmignore
+silly tar err x package/binding.gyp
+silly tar err x package/install.sh
+silly tar err x package/leakcheck.js
+silly tar err x package/LICENSE
+silly tar err x package/node-stringprep.cc
+silly tar err x package/package.json
+silly tar err x package/README.markdown
+silly tar err x package/wscript
+silly tar exit 0
+silly asyncMap in gTP /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/___node-stringprep.npm/package
+silly asyncMap in gTP /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/___node-stringprep.npm/package/.npmignore
+silly asyncMap in gTP /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/___node-stringprep.npm/package/binding.gyp
+silly asyncMap in gTP /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/___node-stringprep.npm/package/install.sh
+silly asyncMap in gTP /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/___node-stringprep.npm/package/leakcheck.js
+silly asyncMap in gTP /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/___node-stringprep.npm/package/LICENSE
+silly asyncMap in gTP /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/___node-stringprep.npm/package/node-stringprep.cc
+silly asyncMap in gTP /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/___node-stringprep.npm/package/package.json
+silly asyncMap in gTP /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/___node-stringprep.npm/package/README.markdown
+silly asyncMap in gTP /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/___node-stringprep.npm/package/wscript
+verbose gunzed /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/___node-stringprep.npm/package
+verbose rm'ed /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/node-stringprep
+verbose renamed [ '/Users/baxtree/Documents/stsworkspace/xlcc/node_modules/___node-stringprep.npm/package',
+verbose renamed   '/Users/baxtree/Documents/stsworkspace/xlcc/node_modules/node-stringprep' ]
+verbose has wscript [ undefined,
+verbose has wscript   { file: '/Users/baxtree/Documents/stsworkspace/xlcc/node_modules/node-stringprep/package.json',
+verbose has wscript     contributors: false,
+verbose has wscript     serverjs: false,
+verbose has wscript     wscript: true } ]
+silly testEngine { name: 'node-stringprep',
+silly testEngine   version: '0.1.5',
+silly testEngine   main: './build/Release/node-stringprep.node',
+silly testEngine   description: 'ICU StringPrep profiles',
+silly testEngine   keywords: [ 'unicode', 'stringprep', 'icu' ],
+silly testEngine   dependencies: {},
+silly testEngine   devDependencies: {},
+silly testEngine   repository: 
+silly testEngine    { type: 'git',
+silly testEngine      path: 'git://github.com/astro/node-stringprep.git',
+silly testEngine      url: '' },
+silly testEngine   homepage: 'http://github.com/astro/node-stringprep',
+silly testEngine   bugs: { name: 'http://github.com/astro/node-stringprep/issues' },
+silly testEngine   author: 
+silly testEngine    { name: 'Astro',
+silly testEngine      email: 'astro@spaceboyz.net',
+silly testEngine      url: 'http://spaceboyz.net/~astro/' },
+silly testEngine   licenses: [ { type: 'MIT' } ],
+silly testEngine   engines: { node: '>=0.4' },
+silly testEngine   _id: 'node-stringprep@0.1.5',
+silly testEngine   scripts: { preinstall: 'node-waf clean || true; node-waf configure build' },
+silly testEngine   _engineSupported: true,
+silly testEngine   _npmVersion: '1.0.106',
+silly testEngine   _nodeVersion: 'v0.4.9',
+silly testEngine   _defaultsLoaded: true }
+verbose caching /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/node-stringprep/package.json
+verbose loadDefaults node-stringprep@0.1.5
+info preinstall node-stringprep@0.1.5
+verbose unsafe-perm in lifecycle false
+verbose Setting uid from 0 501
+verbose stack at uid setting Error
+verbose stack at uid setting     at exec (/Users/baxtree/Downloads/installations/nvm/v0.4.9/lib/node_modules/npm/lib/utils/exec.js:35:17)
+verbose stack at uid setting     at Array.0 (/Users/baxtree/Downloads/installations/nvm/v0.4.9/lib/node_modules/npm/lib/utils/lifecycle.js:127:5)
+verbose stack at uid setting     at EventEmitter._tickCallback (node.js:126:26)
+silly exec sh "-c" "node-waf clean || true; node-waf configure build"
+silly spawning [ 'sh',
+silly spawning   [ '-c',
+silly spawning     'node-waf clean || true; node-waf configure build' ],
+silly spawning   '/Users/baxtree/Documents/stsworkspace/xlcc/node_modules/node-stringprep' ]
+info node-stringprep@0.1.5 Failed to exec preinstall script
+ERR! error installing node-stringprep@0.1.5 Error: node-stringprep@0.1.5 preinstall: `node-waf clean || true; node-waf configure build`
+ERR! error installing node-stringprep@0.1.5 `sh "-c" "node-waf clean || true; node-waf configure build"` failed with 1
+ERR! error installing node-stringprep@0.1.5     at ChildProcess.<anonymous> (/Users/baxtree/Downloads/installations/nvm/v0.4.9/lib/node_modules/npm/lib/utils/exec.js:49:20)
+ERR! error installing node-stringprep@0.1.5     at ChildProcess.emit (events.js:67:17)
+ERR! error installing node-stringprep@0.1.5     at ChildProcess.onexit (child_process.js:192:12)
+info unbuild /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/node-stringprep
+verbose from cache /Users/baxtree/Documents/stsworkspace/xlcc/node_modules/node-stringprep/package.json
+info preuninstall node-stringprep@0.1.5
+info uninstall node-stringprep@0.1.5
+verbose unbuild node-stringprep@0.1.5 [ true,
+verbose unbuild node-stringprep@0.1.5   '/Users/baxtree/Documents/stsworkspace/xlcc/node_modules',
+verbose unbuild node-stringprep@0.1.5   '/Users/baxtree/Documents/stsworkspace/xlcc/node_modules' ]
+info postuninstall node-stringprep@0.1.5
+verbose installOne cb node-stringprep@0.1.5
+ERR! node-stringprep@0.1.5 preinstall: `node-waf clean || true; node-waf configure build`
+ERR! `sh "-c" "node-waf clean || true; node-waf configure build"` failed with 1
+ERR! 
+ERR! Failed at the node-stringprep@0.1.5 preinstall script.
+ERR! This is most likely a problem with the node-stringprep package,
+ERR! not with npm itself.
+ERR! Tell the author that this fails on your system:
+ERR!     node-waf clean || true; node-waf configure build
+ERR! You can get their info via:
+ERR!     npm owner ls node-stringprep
+ERR! There is likely additional logging output above.
+ERR! 
+ERR! System Darwin 10.8.0
+ERR! command "node" "/Users/baxtree/Downloads/installations/nvm/v0.4.9/bin/npm" "install" "node-stringprep"
+ERR! cwd /Users/baxtree/Documents/stsworkspace/xlcc/node-xlcc
+ERR! node -v v0.4.9
+ERR! npm -v 1.0.106
+ERR! code ELIFECYCLE
+verbose exit [ 1, true ]
